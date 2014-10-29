@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<link rel="shortcut icon" href="images/favicon.ico" />
+<meta charset="UTF-8" />
+<meta name="robots" content="index, follow" />
+<meta name="keywords" content="" />
+<meta name="description" content="" />
+<title>| | HOME | Wisdom Consultancies | Consultancies in Coimbatore | Coimbatore Consultancy | Current Jobs in Coimbatore | Jobs in Coimbatore | wisdom consultancy | </title>
+
+<link href="styles/style.css" rel="stylesheet" type="text/css" />
+<link href="styles/color.css" rel="stylesheet" type="text/css" />
+<link href="styles/inner.css" rel="stylesheet" type="text/css" />
+<link type="text/css" href="styles/skitter.styles.css" media="all" rel="stylesheet" />
+<link href="styles/jcarousel.css" rel="stylesheet" type="text/css" />
+
+<script type="text/javascript" src="js/jquery-1.6.4.min.js"></script>
+<script type="text/javascript" src="js/jquery.easing.1.3.js"></script>
+
+<script type="text/javascript" src="js/jquery.animate-colors-min.js"></script>
+<script type="text/javascript" src="js/jquery.skitter.js"></script>
+
+<script type="text/javascript" src="js/hoverIntent.js"></script> 
+<script type="text/javascript" src="js/superfish.js"></script> 
+<script type="text/javascript" src="js/supersubs.js"></script>
+
+<script type="text/javascript" src="js/jquery.jcarousel.min.js"></script>
+<script type="text/javascript" src="js/jcarousel-config.js"></script>
+
+<script type="text/javascript">
+jQuery(document).ready(function(){
+
+	//=================================== MAIN MENU ===================================//
+	jQuery("ul.sf-menu").supersubs({ 
+	minWidth		: 12,		// requires em unit.
+	maxWidth		: 27,		// requires em unit.
+	extraWidth		: 3	// extra width can ensure lines don't sometimes turn over due to slight browser differences in how they round-off values
+						   // due to slight rounding differences and font-family 
+	}).superfish();  // call supersubs first, then superfish, so that subs are 
+					 // not display:none when measuring. Call before initialising 
+					 // containing tabs for same reason. 
+					 
+
+	//=================================== SLIDESHOW ===================================//
+	jQuery(".box_skitter_large").skitter({
+		animation: "random",
+		interval: 3000,
+		numbers: false, 
+		numbers_align: "right", 
+		hideTools: false,
+		controls: false,
+		focus: false,
+		focus_position: true,
+		width_label:'900px', 
+		enable_navigation_keys: true,   
+		progressbar: false
+	});
+
+});
+</script>
+<style type="text/css">
+<!--
+.style3 {
+	color: #33CCFF;
+	font-family: "Brush Script MT";
+	font-size: xx-large;
+}
+.style4 {
+	font-family: "Brush Script MT";
+	font-size: xx-large;
+}
+.style5 {
+	font-family: Georgia, "Times New Roman", Times, serif;
+	font-size: 16px;
+}
+.style6 {
+	font-size: 14px
+}
+.style7 {font-size: 12px}
+.style8 {
+	font-family: Georgia, "Times New Roman", Times, serif;
+	font-size: 14px;
+	color: #000000;
+}
+.style12 {
+	font-size: 13px;
+	color: #000000;
+}
+.style14 {font-size: 14px; color: #000000; }
+.style15 {color: #000000}
+-->
+</style>
+</head>
+
+<body>
+<div id="bodychild">
+	<div id="outercontainer">
+    
+        <!-- HEADER -->
+        <div id="outerheader">
+          <header id="top">
+           	  <div id="logo">
+            	  <div>
+            	    <div align="left">
+            	      <table width="200" border="0" align="center">
+            	        <tr>
+            	                    <td width="95%"><p><img src="images/content/main_logo.png" width="880" height="137"></p>            	                                                   
+            	                             <ul id="topnav" class="sf-menu">
+            	                                     <li class="current"><a href="index.html" class="style12 style6">Home</a></li>
+            	                               <li><a href="about.html" class="style6">About Us</a> </li>
+            	                               <li><a href="enquiry.html" class="style6">Apply for Job</a>          	                                 </li>
+            	                               <li><a href="#" class="style6">Our Client & Partners</a></li>
+            	                               <li><a href="#" class="style6">Services</a>
+                                                <ul>
+            	                                         <li><a href="managed_services.html">Managed Services</a></li>
+                                                         <li><a href="recruitment.html">Recruitment</a></li>
+                                                         <li><a href="trainings.html">Trainings</a></li>
+          	                                       </ul>
+                                               
+                                               </li>
+												
+                                                <li><a href="" class="style6">Tips to Search</a>
+            	                                     <ul>
+            	                                         <li><a href="resume_building.html">How to build your resume</a></li>
+          	                                       </ul>
+          	                                 </li>
+            	                               <li><a href="current_openings.html" target="_blank" class="style6">CURRENT Openings</a></li>
+            	                               <li><a href="contact.html" class="style14">Contact</a></li>
+          	                               </ul>            	                      <!-- topnav --></td>
+            	          <!-- nav -->	
+          	            </tr>
+          	        </table>
+          	      </div>
+          	    </div>
+           	  </div>
+                <div>
+                  <div align="left">                                                                                                                    </div>
+            </div>
+                <p>
+                  <section id="navigation">
+                    <nav>
+                    </nav>
+                  </section>
+              <section id="navigation"><nav></nav></section></p>
+          </header>
+        </div>
+<!-- END HEADER -->
+        
+        <!-- SLIDER -->
+        <div id="outerslider">
+        	<div id="slidercontainer">
+
+            	<section id="slider">
+                <div class="box_skitter box_skitter_large">
+                    <ul>
+                        <li>
+                            <a href="#"><img src="images/content/slide1.jpg" alt="" /></a>
+                            
+                        </li>
+                        <li>
+                            <a href="#"><img src="images/content/slide2.jpg" alt="" /></a>
+                            
+                        </li>
+                        <li>
+                            <a href="#"><img src="images/content/slide3.jpg" alt="" /></a>
+                            
+                        </li>
+                        <li>
+                            <a href="#"><img src="images/content/slide4.jpg" alt="" /></a>
+                            
+                        </li>
+                    </ul>
+                </div>
+                </section>
+                
+            </div>
+        </div>
+        <!-- END SLIDER -->
+        
+        <!-- BEFORE CONTENT -->
+        <div id="outerbeforecontent">
+            <section id="beforecontent">
+                <article id="beforethecontent">
+                    <div class="three_fourth">
+                        <h2 class="style3">Welcome to Wisdom Consultancies</h2>
+                        <p class="style8">We are a prominent executive search &amp; selection company, providing a wide range of recruitment and outsourcing solutions for various requirements. We are a team of dedicated professionals offering services across all over the world.</p>
+                        <p class="style8">&nbsp;</p>
+                        <p class="style8">Established in the year 2008, we have specialized team of recruitment industry functions. Our team is better equipped to meet the needs of our clients and to assess the candidates. They enjoy complete encouragement and guidance from highly seasoned seniors, who have experience in all areas of recruitment.</p>
+                      <p align="justify" class="style8">&nbsp;</p>
+                      <p align="justify" class="style5">&nbsp;</p>
+                  </div>
+                  <p>&nbsp;</p>
+                    <p>&nbsp;</p>
+                    <p>&nbsp;</p>
+                    <p>&nbsp;</p>
+              <div class="one_fourth lastcols">
+                        <a href="about.html" class="button-buy"><span class="arrow">READ MORE</span></a>                    </div>
+              </article>
+                <div class="clear"></div>
+            </section>
+        </div>
+        <!-- END BEFORE CONTENT -->
+        
+        <!-- MAIN CONTENT -->
+        <div id="outermain">
+        	<section id="maincontent">
+            	
+                
+               		<div class="one_fourth">
+                    	<h4 class="colortext style4">Jobs</h4>
+                      <p align="justify" class="style15">We provide jobs to the job seekers from our consultancy. In this job seekers can post a resume in the Post your resumes column.</p>
+              </div>
+<div class="one_fourth">
+                    	<h4 class="colortext style4">Career Advice</h4>
+                      <p align="justify" class="style15">We provide career advices for the job seekers in interviewing, resume &amp; cover letter preparation, job hunt strategy and salary benefits.</p>
+              </div>
+<div class="one_fourth">
+                    	<h4 align="justify" class="colortext style4">Latest Jobs</h4>
+                      <p align="justify" class="style15">We post latest job vaccancies in this site. Job Seekers can view their jobs here or contacting us by mail or phone.</p>
+              </div>
+<div class="one_fourth lastcols">
+                    	<h4 class="colortext style4">Services</h4>
+                      <p align="justify" class="style15">Our Services have a best for care of our clients.</p>
+              </div>
+                    
+			  <div class="separator line"><div></div></div>
+                    
+                    <article id="recent-portfolio">
+                    <h5 class="style15">LATEST NEWS &amp; MAIL LOGIN:</h5>          		
+					<table width="200" border="0" align="center">
+                      <tr>
+                        <td width="39%">&nbsp;</td>
+                        <td width="61%">
+                        
+                         <script type="text/javascript">
+
+var iframesrc="external.htm"
+
+
+document.write('<iframe id="datamain" src="'+iframesrc+'" width="380px" height="280px" marginwidth="0" marginheight="0" hspace="0" vspace="0" frameborder="0" scrolling="no"></iframe>')
+
+</script>
+                        
+                        &nbsp;</td>
+                        <td width="61%">
+                         <script type="text/javascript">
+
+var iframesrc="emergency_news.html"
+
+
+document.write('<iframe id="datamain" src="'+iframesrc+'" width="380px" height="280px" marginwidth="0" marginheight="0" hspace="0" vspace="0" frameborder="0" scrolling="no"></iframe>')
+
+</script>
+                        
+                        
+                        &nbsp;</td>
+                      </tr>
+                    </table>
+					<p>&nbsp;</p>
+                    </article>
+                    
+                    <div class="clear"></div>
+                    <div id="tscarousel-container">
+                    	<h5 class="style15">Our Partners</h5>
+<ul id="tscarousel" class="jcarousel-skin-tango">
+                            <li><a href="http://www.woxmedia.in" target="_blank"> <img src="images/content/wox_media.jpg" alt="Wox Media"  class="cover" /></li>
+                            <li><img src="images/content/partner.jpg" alt=""  class="cover" /></li>
+                            <li><img src="images/content/partner.jpg" alt=""  class="cover" /></li>
+                            <li><img src="images/content/partner.jpg" alt=""  class="cover" /></li>
+                        </ul>
+                        <div id="tscarousel-button">
+                            <a id="tscarousel-prev">Prev</a>
+                            <a id="tscarousel-next">Next</a>                        </div>
+                    </div>
+                    <article id="recent-post">
+                  <h5>&nbsp;</h5>
+                        </article>
+              <!-- clear float -->
+            </section>
+        </div>
+    <!-- END MAIN CONTENT -->
+        
+        <!-- FOOTER SIDEBAR -->
+        <div id="outerfootersidebar">
+        	<div id="footersidebarcontainer">
+            	<footer id="footersidebar">
+                
+            	<div class="footcol1">
+				<ul>
+					<li class="widget-container">
+                        <h2 class="widget-title style15">Follow Us</h2>
+                        <p class="style15">By our Social Networks you can join us</p>
+		  <ul class="sn">
+                            <li><a title="Facebook" href="http://facebook.com/wisdom.consultancies/" target="_blank"><span style="background:url(images/social/facebook.png)" class="icon-img"></span></a></li>
+                            <li><a title="Twitter" href="http://twitter.com/"><span style="background:url(images/social/twitter.png)" class="icon-img"></span></a></li>
+                            <li><a title="LinkedIn" href="http://in.linkedin.com/pub/kingston-melchisedec/60/441/136"><span style="background:url(images/social/linkedin.png)" class="icon-img"></span></a></li>
+						</ul>
+                    </li>
+                </ul>
+                </div>
+            	<div class="footcol2">
+                	<ul>
+                   	  <li class="widget-container">
+                   	    <h2 class="widget-title style15">Keep in touch</h2>
+							<p><span class="style15">Our Website and Quick Email </span><a href="http://www.wisdomconsultancies.com">www.wisdomconsultancies.com</a><br>
+							<a href="mailto: info@wisdomconsultancies.com">info@wisdomconsultancies.com</a>                        </p>
+                   	  </li>
+                  </ul>
+                </div>
+            	<div class="footcol3">
+                	<ul>
+                    	<li class="widget-container">
+                        	<h2 class="widget-title style15">Newsletter</h2>
+                            <p class="style15">Who are Registering in the Newsletter, will get Regular Updates about Wisdom</p>	
+                          <form action="#" method="post" id="newsletter">
+                            <div><input type="text" /><input type="submit" value="Send" /></div>
+                            </form>
+                        </li>
+                  </ul>
+                </div>
+            	<div class="footcol4">
+				<ul>
+					<li class="widget-container">
+                        <h2 align="justify" class="widget-title style15">About Us</h2>
+                        <p align="justify" class="style14"><span class="style7">We are a prominent executive  search &amp; selection company, providing a wide range of recruitment solutions  for various requirements. We are a team of dedicated professionals offering  services across all over the world</span>.</p>
+                  </li>
+                </ul>
+                </div>
+                
+                <div class="clear"></div>
+                </footer>
+            </div>
+        </div>
+        <!-- END FOOTER SIDEBAR -->
+        
+        <!-- FOOTER -->
+        <div id="outerfooter">
+        	<div id="footercontainer">
+            	<footer id="footer"><span class="style15">Copyright &copy; 2012</span> <a href="http://www.wisdomconsultancies.com" target="_blank">WISDOM CONSULTANCIES</a>. <span class="style15">All Rights Reserved &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Powered By <a href="http://www.kasisolutions.co.in">KASI SOLUTIONS</a></span></footer>
+       	  </div>
+      </div>
+        <!-- END FOOTER -->
+        
+	</div><!-- end bodychild -->
+</div><!-- end outercontainer -->
+		
+</body>
+
+</html>

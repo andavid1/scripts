@@ -1,0 +1,12 @@
+#!/bin/bash
+
+#set -x
+
+for ip in `ifconfig | grep  -w inet | cut -d ':' -f2 |awk '{print $1}'` 
+do
+echo "The IPs in the server are" $ip
+
+done
+
+free -m 
+

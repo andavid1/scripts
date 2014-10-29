@@ -1,0 +1,14 @@
+#!/bin/bash
+
+#set -x
+
+function ipget {
+
+for ip in `ifconfig | grep  -w inet | cut -d ':' -f2 |awk '{print $1}'` 
+do
+echo  $ip
+done
+}
+
+ipget 
+
