@@ -8,11 +8,10 @@ ulimit -H -c0
 set -euf -o pipefail
 #Declerations
 net=`ping -c 3 yahoo.com | grep -i "loss" | awk '{ print $6 }'|  sed 's/%/ /'`
-apa=apache2
-php=php5
+apa='apache2 php5'
 
 
-echo "CHECKING NETWORK CONNECTION PLEASE WAIT "
+echo "checking network connection please wait "
 if [ $net > 99 ]; then
 echo "NETWORK REACHABLE"
 else
@@ -40,24 +39,26 @@ function install
   sudo apt-get update >/dev/null
   sudo dpkg -l $apa > /dev/null 2>&1
   INSTALLED=$?
-  if [ $INSTALLED == '0' ]; then
-  echo " apache $apa installed"
+  if [ $INSTALLED = 0 ]; then
+  echo apache $apa already installed skipping $apa installation
+  application
   else
-  echo "not installed"
+  echo updating the system...
+  sudo apt-get install apache2 php5 -y >/dev/null
+  sleep 100
+  sudo a2enmod ssl
+  sudo a2ensite default-ssl
+  sudo service apache2 restart
+  application
   fi
-    
-    echo updating the system 
-    sleep 200
-	sudo apt-get install apache2 php5 -y >/dev/null
 }
 
 function application 
 {
-	if [ -d "/home/$USER/test-app" ]
-    then
+	if [ -d "/home/$USER/test-app" ];then
     echo fixing permissions...
     chown -R $USER.USER /home/$USER/test-app
-    ln -s /home/$USER/test-app /var/www
+    sudo ln -s /home/$USER/test-app /var/www
     else
     echo "Error: Directory does not exists please place the files and rerun the script"
     exit 
