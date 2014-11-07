@@ -1,0 +1,8 @@
+merge_blocklist.sh
+
+
+#!/bin/sh
+
+mv -f /etc/blocklist /etc/blocklist.old
+cat /etc/blocklist.old /root/blocklist | sort | uniq > /etc/blocklist
+service firewall start

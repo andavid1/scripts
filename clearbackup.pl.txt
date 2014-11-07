@@ -1,0 +1,11 @@
+clearbackup.pl
+
+
+#!/usr/bin/perl
+
+$backup_data = "/etc/backup/backup_data";
+
+$head = `/usr/bin/head -n 1 $backup_data`;
+chomp( $head );
+
+system( "/bin/echo '$head' > $backup_data" );

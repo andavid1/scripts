@@ -1,0 +1,27 @@
+ctrlsysload.sh
+
+
+#!/bin/bash
+
+
+#Script to kill the load if load crossed 10 
+# It will kill spamd process on server and restart it over again.
+
+
+# Set up limit below
+NOTIFY="9.0"
+echo $NOTIFY
+# get first 5 min load
+F5M="$(uptime | awk '{print $10}'|cut -d, -f1)"
+echo $F5M
+
+# if so kill spamd and restart it
+
+if [ $F5M > $NOTIFY ]; then
+#echo "killing spamd"
+#killall -9 spamd
+#killall -9 spamd
+#echo "starting spamd"      
+#/root/bin/fix_mail.sh
+echo "test"
+fi

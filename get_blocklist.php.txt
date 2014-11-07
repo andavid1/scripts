@@ -1,0 +1,29 @@
+ get_blocklist.php
+
+
+<?php
+
+        $filename = "/etc/blocklist";
+        system( "/bin/mv -f $filename $filename.prev" );
+
+        if( !$handle = fopen( $filename, 'w' )) {
+                echo "Cannot open file ($filename)\n";
+                exit;
+        }
+
+        foreach( file( "http://free.webserve.ca/get_blocklist.php" ) as $i ) {
+                if( !(preg_match( "/^\s*[\d\.]+\s*/", $i ))) {
+                        echo( "Error: $i" );
+                        exit;
+                }
+
+                if( fwrite( $handle, $i ) === FALSE ) {
+                        echo "Cannot write to file ($filename)\n";
+                        exit;
+                }
+        }
+
+        fclose( $handle );
+
+//      system( "service firewall start" );
+?>

@@ -1,0 +1,307 @@
+backup.pl
+
+#!/usr/bin/perl
+
+# The name of the "Shared Folder" on the backup server
+$SHARE_NAME = "backup2/ns3";
+
+# The partitions you want to backup on this server, as they are shown by running the command
+# trueimagecmd --list
+$PARTITIONS = "1-1,1-4";
+
+# Backup server login details
+$BACKUP_HOST = "192.168.1.3";
+$USERNAME = "root";
+# $PASSWORD = "G).HdsOf&5zp_dZ";
+$PASSWORD = "w00T@jbN.2";
+
+# Directory used to mount "Shared Folders"
+$MOUNT_DIR = "/mnt/backup";
+
+# Acronis details
+$ACRONIS = "/usr/sbin/trueimagecmd";
+$ACRONIS_MNT = "/usr/sbin/trueimagemnt";
+$PROGRESS = "on";
+
+# MySQL / PGSQL details
+$MYSQLDUMP = "/usr/bin/mysqldump";
+$PGSQLDUMP = "/usr/bin/pg_dump";
+$MYSQL_USER = "root";
+$MYSQL_PASS = "sdr1ueTww03";
+$ENSIMDB_NAME = "appldb";
+
+# Email address report is sent to if a failure is detected
+$URG_MAIL_ADDR = "joel\@webserve.ca";
+
+# Email address report is always sent to
+$NORM_MAIL_ADDR = "monitor\@webserve.ca";
+
+# Global Variables
+#$server_name = `hostname`;
+$server_name = "ns3.servepower.com31";
+chomp( $server_name );
+
+@messages = ();
+$sendmail = "/usr/sbin/sendmail -t -i";
+
+# Set to 1, and this script will just print out what it would otherwise do
+$debug_mode = 0;
+
+# Run and log a system command
+sub run_cmd {
+        my ($cmd) = @_;
+        my $result, @date_array;
+        
+        @date_array = localtime();
+        $date_array[0] = '0' . $date_array[0] if( length( $date_array[0] ) == 1 );
+        $date_array[1] = '0' . $date_array[1] if( length( $date_array[1] ) == 1 );
+        $date_array[2] = '0' . $date_array[2] if( length( $date_array[2] ) == 1 );
+
+        print "\t[" . $date_array[2] . ":" . $date_array[1] . ":" . $date_array[0] . "] -> " . $cmd . "\n";
+
+        return 0 if( $debug_mode );
+
+        if( $result = system( "$cmd 2>&1" )) {
+                log_message( "*** ERROR: '$cmd' returned ($result)" );
+                return $result;
+        }
+
+        return 0;
+}
+
+# Check to see if the provided 'mount path' is a curently mounted filesystem.
+sub check_mount {
+        my ($mount_path) = @_;
+        my $mounted = 0;
+
+        foreach $i (`/bin/df`) {
+                $mounted = $1 if( $i =~ /(\d+)\%\s+$mount_path/ );
+        }
+
+        return $mounted;
+}
+
+# Subroutine to make a log of all messages printed out. They are 
+# later sent as part of the email report.
+sub log_message {
+        my ($msg) = @_;
+
+        push @messages, $msg;
+        print( $msg . "\n" );
+}
+
+# Subroutine to send email messages
+sub sendEmail {
+        my ($addr) = @_;
+        my $msg, $i;
+
+        $msg = "From: root\@${server_name}\n";
+        $msg .= "To: $addr\n";
+        $msg .= "Subject: Backup : $server_name\n\n";
+
+        foreach $i (@messages) {
+                $msg .= "$i\n";
+        }
+
+        print( "Sending message: $msg\n" ) if( $debug_mode );
+
+        unless( open( SENDMAIL, "|$sendmail" )) {
+                print( "*** ERROR: Could not open pipe to: '$sendmail'" );
+                return;
+        }
+
+        print SENDMAIL $msg;
+
+        close( SENDMAIL );
+}
+
+# Make a backup of all MySQL databases
+sub mysql_backup {
+        my $i, $errors;;
+
+        $errors = 0;
+
+        foreach $i (`/bin/ls /var/lib/mysql`) {
+                chomp( $i );
+
+                if( -d "/var/lib/mysql/$i" ) {
+                        rotate_files( "$i.sql.*" );
+
+                        if( run_cmd( "cd $MOUNT_DIR; $MYSQLDUMP --add-drop-table -Q -u '$MYSQL_USER' --password='$MYSQL_PASS' $i |" .
+                                " /usr/bin/split -b 2000m - $i.sql." )) {
+                                log_message( "*** Error making backup of '$i'\n" );
+                                $errors++;
+                        }
+
+                        sleep( 1 ) unless( $debug_mode );
+                }
+       }
+
+        return $errors;
+}
+
+# Subroutine to move any files matching the provided pattern into the /prev directory.
+sub rotate_files {
+        my( $pattern ) = @_;
+        my $errors = 0;
+
+        if( !check_mount( $MOUNT_DIR )) {
+                log_message( "Cannot rotate '$pattern', not mounted: '$MOUNT_DIR'!\n" );
+                return 1;
+
+        } else {
+                foreach $i (`/bin/ls $MOUNT_DIR/$pattern`) {
+                        chomp( $i );
+                        $i =~ s/$MOUNT_DIR//g;
+                        $errors += run_cmd( "/bin/mv -f $MOUNT_DIR/$i $MOUNT_DIR/prev/$i\n" );
+                }
+        }
+
+        return $errors;
+}
+
+# NFS Mount the backup space
+sub mount_backup {
+        my( $read_only ) = @_;
+        my $error = 0;
+
+        unmount_backup();
+
+        $error = run_cmd( "/bin/mount " . ($read_only ? "-r " : "") . "-t nfs '$BACKUP_HOST:/$SHARE_NAME' '$MOUNT_DIR'" );
+
+        if( !check_mount( $MOUNT_DIR )) {
+                log_message( "*** Error mounting '$MOUNT_DIR'\n" );
+        }
+
+        return $error;
+}
+
+# Unmount the backup space
+sub unmount_backup {
+        if( check_mount( $MOUNT_DIR )) {
+                return run_cmd( "/bin/umount '$MOUNT_DIR'" );
+        }
+
+        return -1;
+}
+
+# Get parameters
+$mode = $ARGV[0];
+chomp( $mode );
+
+$index = $ARGV[1];
+chomp( $index );
+
+$result = 1;
+
+# Check to see if backup is already running
+$ps_str = `/bin/ps -ef | /bin/grep backup.pl`;
+$ps_count = 0;
+
+foreach $i (split( '\n', $ps_str )) {
+        if( $i =~ /\/usr\/bin\/perl/ ) {
+                $ps_count++;
+        }
+}
+
+if( $ps_count > 1 ) {
+        log_message( "*** ERROR: Backup is already running. ($mode $index)" );
+        sendEmail( $URG_MAIL_ADDR ) if( $mode eq "-a" || $mode eq "-d" || $mod eq "-e" );
+        exit( 1 );
+}
+
+# Acronis Backup
+if( $mode eq "-a" ) {
+
+        $start_time = localtime();
+        $result = run_cmd( "$ACRONIS --create --incremental --filename:nfs://$BACKUP_HOST/$SHARE_NAME:/$server_name.tib" .
+                " --partition:$PARTITIONS --progress:$PROGRESS" );
+        $finish_time = localtime();
+
+        log_message( "Acronis backup of $server_name started at $start_time and completed at $finish_time" );
+
+        sendEmail( $URG_MAIL_ADDR ) if( $result );
+        sendEmail( $NORM_MAIL_ADDR );
+
+# List backups done by Acronis
+} elsif( $mode eq "-l" ) {
+        $result = run_cmd( "$ACRONIS --list --filename:nfs://$BACKUP_HOST/$SHARE_NAME:/$server_name.tib" );
+
+# Mount backup
+} elsif( $mode eq "-m" ) {
+        if( $index ) {
+                $result = mount_backup( 0 );
+        } else {
+                $result = mount_backup( 1 );
+        }
+
+# Mount Acronis backup
+} elsif( $mode eq "-b" ) {
+        unmount_backup();
+
+        $result = run_cmd( "$ACRONIS_MNT --mount $MOUNT_DIR --filename " . 
+                "nfs://$BACKUP_HOST/$SHARE_NAME:/$server_name.tib --index $index " );
+
+# Unmount
+} elsif( $mode eq "-u" ) {
+        $result = unmount_backup();
+
+# Database Backup
+} elsif( $mode eq "-d" ) {
+        mount_backup( 0 );
+
+        if( check_mount( $MOUNT_DIR )) {
+                $start_time = localtime();
+                $result = mysql_backup();
+                $finish_time = localtime();
+
+                unmount_backup();
+                log_message( "MySQL backup of $server_name started at $start_time and completed at $finish_time" );
+
+        } else {
+                $result = 1;
+                log_message( "*** MySQL backup failed because '$MOUNT_DIR' not mounted." );
+        }
+
+        sendEmail( $URG_MAIL_ADDR ) if( $result );
+        sendEmail( $NORM_MAIL_ADDR );
+
+# Make Ensim database backup
+} elsif( $mode eq "-e" ) {
+        mount_backup( 0 );
+
+        if( check_mount( $MOUNT_DIR )) {
+                $start_time = localtime();
+                $result = run_cmd( "cd $MOUNT_DIR; $PGSQLDUMP --inserts $ENSIMDB_NAME | " .
+                        "/usr/bin/split -b 2000m - $ENSIMDB_NAME.sql." );
+                $finish_time = localtime();
+
+                unmount_backup();
+                log_message( "Ensim DB backup of $server_name started at $start_time and completed at $finish_time" );
+
+        } else {
+                $result = 1;
+                log_message( "*** Ensim backup failed because '$MOUNT_DIR' not mounted." );
+        }
+
+        sendEmail( $URG_MAIL_ADDR ) if( $result );
+        sendEmail( $NORM_MAIL_ADDR );
+
+# Usage Info
+} else {
+        print( "\nUsage: $0 [ -a | -l | -b [index] | -m | -u | -d | -e ]\n\n" );
+        print( "\tAcronis Options:\n" );
+        print( "\t-a   Create Acronis backup image.\n" );
+        print( "\t-l   List partitions and index numbers on current acronis image backup file.\n" );
+        print( "\t-b   Mount the parition indicated by the [index] number to $MOUNT_DIR\n" );
+        print( "\t\t(Use the -l option to figure out the desired index number.)\n\n" );
+        print( "\tMount Options:\n" );
+        print( "\t-m   Mount backups to $MOUNT_DIR\n" );
+        print( "\t-u   Umount the currently mounted backup.\n" );
+        print( "\t\t(Please unmount the backup once you no longer need it.)\n\n" );
+        print( "\tDatabase Options:\n" );
+        print( "\t-d   Perform MySQL backup.\n" );
+        print( "\t-e   Perform Ensim database backup.\n\n" );
+}
+
+exit( $result );

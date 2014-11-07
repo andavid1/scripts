@@ -1,0 +1,236 @@
+firewall.sh
+
+#!/bin/sh
+
+# Path to binaries
+IPTABLES="/sbin/iptables"
+IP="/sbin/ip"
+LOGGER="/usr/bin/logger"
+CAT="/bin/cat"
+
+# Logging Option
+LOGGING_ENABLED=0
+
+# Locations of files
+BLOCKLISTFILE="/etc/firewall/blocklist"
+SAFELISTFILE="/etc/firewall/safelist"
+PORTLISTFILE="/etc/firewall/portlist"
+GETIPSSCRIPT="/root/bin/get_ips.pl"
+
+# Overall Limits for NEW incoming packets
+INLIMIT="50/s"
+INLIMITBURST="50"
+
+# Overall Limits for NEW outgoing packets
+OUTLIMIT="50/s"
+OUTLIMITBURST="50"
+
+# Overall Limit for Loggging (to prevent /var/log/messages from filling up the disk)
+LOGLIMIT="10/m"
+
+# Clear any existing rules
+cat /proc/net/ip_tables_names | while read table; do
+        $IPTABLES -t $table -L -n | while read c chain rest; do
+                if test "X$c" = "XChain" ; then
+                        $IPTABLES -t $table -F $chain
+                fi
+        done
+
+        $IPTABLES -t $table -X
+done
+
+# Make sure firewall FTP module is loaded
+/sbin/modprobe ip_conntrack_ftp
+
+# Create LOG then DROP rules
+$IPTABLES -N DROP_INV
+if [ $LOGGING_ENABLED == 1 ]; then 
+        $IPTABLES -A DROP_INV -m limit --limit $LOGLIMIT  -j LOG --log-prefix "FW_INV: " --log-level info
+fi
+$IPTABLES -A DROP_INV -j DROP
+
+$IPTABLES -N DROP_SYN
+if [ $LOGGING_ENABLED == 1 ]; then
+        $IPTABLES -A DROP_SYN -m limit --limit $LOGLIMIT -j LOG --log-prefix "FW_SYN: " --log-level info
+fi
+$IPTABLES -A DROP_SYN -j DROP
+
+$IPTABLES -N DROP_FRAG
+if [ $LOGGING_ENABLED == 1 ]; then
+        $IPTABLES -A DROP_FRAG -m limit --limit $LOGLIMIT -j LOG --log-prefix "FW_FRAG: " --log-level info
+fi
+$IPTABLES -A DROP_FRAG -j DROP
+
+$IPTABLES -N DROP_SPOOF
+if [ $LOGGING_ENABLED == 1 ]; then
+        $IPTABLES -A DROP_SPOOF -m limit --limit $LOGLIMIT -j LOG --log-prefix "FW_SPOOF: " --log-level info
+fi
+$IPTABLES -A DROP_SPOOF -j DROP
+
+$IPTABLES -N DROP_FLAG
+if [ $LOGGING_ENABLED == 1 ]; then
+        $IPTABLES -A DROP_FLAG -m limit --limit $LOGLIMIT -j LOG --log-prefix "FW_FLAG: " --log-level info
+fi
+$IPTABLES -A DROP_FLAG -j DROP
+
+$IPTABLES -N DROP_END
+if [ $LOGGING_ENABLED == 1 ]; then
+        $IPTABLES -A DROP_END -m limit --limit $LOGLIMIT -j LOG --log-prefix "FW_END: " --log-level info
+fi
+$IPTABLES -A DROP_END -j DROP
+
+# Create an limit for NEW incoming packets
+$IPTABLES -N IN_LIMIT
+# $IPTABLES -A IN_LIMIT -j ACCEPT
+$IPTABLES -A IN_LIMIT -m limit --limit $INLIMIT --limit-burst $INLIMITBURST -j ACCEPT
+if [ $LOGGING_ENABLED == 1 ]; then
+        $IPTABLES -A IN_LIMIT -m limit --limit $LOGLIMIT -j LOG --log-prefix "FW_IN: " --log-level info
+fi
+$IPTABLES -A IN_LIMIT -j DROP
+
+# Create an limit for NEW outgoing packets
+$IPTABLES -N OUT_LIMIT
+$IPTABLES -A OUT_LIMIT -m limit --limit $OUTLIMIT --limit-burst $OUTLIMITBURST -j ACCEPT
+if [ $LOGGING_ENABLED == 1 ]; then
+        $IPTABLES -A OUT_LIMIT -m limit --limit $LOGLIMIT -j LOG --log-prefix "FW_OUT: " --log-level info
+fi
+$IPTABLES -A OUT_LIMIT -j DROP
+
+# Anti-spoofing rules
+$IPTABLES -N ANTI_SPOOF
+$IPTABLES -A ANTI_SPOOF -s 10.0.0.0/8 -j DROP_SPOOF
+$IPTABLES -A ANTI_SPOOF -s 127.0.0.0/8 -j DROP_SPOOF
+$IPTABLES -A ANTI_SPOOF -s 192.168.0.0/16 -j DROP_SPOOF
+$IPTABLES -A ANTI_SPOOF -s 172.16.0.0/12 -j DROP_SPOOF
+$IPTABLES -A ANTI_SPOOF -s 169.254.0.0/16 -j DROP_SPOOF
+
+# Invalid tcp flags
+$IPTABLES -N TCP_FLAGS
+$IPTABLES -A TCP_FLAGS -p tcp --tcp-flags ALL NONE -j DROP_FLAG
+$IPTABLES -A TCP_FLAGS -p tcp --tcp-flags ALL ALL -j DROP_FLAG
+$IPTABLES -A TCP_FLAGS -p tcp --tcp-flags ALL FIN,URG,PSH -j DROP_FLAG
+$IPTABLES -A TCP_FLAGS -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j DROP_FLAG
+$IPTABLES -A TCP_FLAGS -p tcp --tcp-flags ALL ACK,RST,SYN,FIN -j DROP_FLAG
+$IPTABLES -A TCP_FLAGS -p tcp --tcp-flags SYN,FIN SYN,FIN -j DROP_FLAG
+
+# Drop all packets by default
+$IPTABLES -P OUTPUT DROP
+$IPTABLES -P INPUT DROP
+$IPTABLES -P FORWARD DROP
+
+# Block invalid packets
+$IPTABLES -A INPUT -i eth0 -m state --state INVALID -j DROP_INV
+$IPTABLES -A FORWARD -i eth0 -m state --state INVALID -j DROP_INV
+$IPTABLES -A OUTPUT -o eth0 -m state --state INVALID -j DROP_INV
+$IPTABLES -A FORWARD -o eth0 -m state --state INVALID -j DROP_INV
+
+$IPTABLES -A INPUT -i eth1 -m state --state INVALID -j DROP_INV
+$IPTABLES -A FORWARD -i eth1 -m state --state INVALID -j DROP_INV
+$IPTABLES -A OUTPUT -o eth1 -m state --state INVALID -j DROP_INV
+$IPTABLES -A FORWARD -o eth1 -m state --state INVALID -j DROP_INV
+
+# Block NEW without SYN
+$IPTABLES -A INPUT -i eth0 -p tcp ! --syn -m state --state NEW -j DROP_SYN
+$IPTABLES -A OUTPUT -o eth0 -p tcp ! --syn -m state --state NEW -j DROP_SYN
+
+$IPTABLES -A INPUT -i eth1 -p tcp ! --syn -m state --state NEW -j DROP_SYN
+$IPTABLES -A OUTPUT -o eth1 -p tcp ! --syn -m state --state NEW -j DROP_SYN
+
+# Anti-spoofing rules
+$IPTABLES -A INPUT -i eth0 -j ANTI_SPOOF
+$IPTABLES -A OUTPUT -o eth0 -j ANTI_SPOOF
+
+# Block fragments and Xmas tree as well as SYN,FIN and SYN,RST
+$IPTABLES -A INPUT -i eth0 -p ip -f  -j DROP_FRAG
+$IPTABLES -A INPUT -i eth0 -p tcp -j TCP_FLAGS
+
+$IPTABLES -A OUTPUT -o eth0 -p ip -f  -j DROP_FRAG
+$IPTABLES -A OUTPUT -o eth0 -p tcp -j TCP_FLAGS
+
+$IPTABLES -A INPUT -i eth1 -p ip -f  -j DROP_FRAG
+$IPTABLES -A INPUT -i eth1 -p tcp -j TCP_FLAGS
+
+$IPTABLES -A OUTPUT -o eth1 -p ip -f  -j DROP_FRAG
+$IPTABLES -A OUTPUT -o eth1 -p tcp -j TCP_FLAGS
+
+# Reject port 113 -- speed up sendmail
+$IPTABLES -A INPUT -i eth0 -p tcp --dport 113 -j REJECT --reject-with tcp-reset
+
+# Allow most packets on internal network
+$IPTABLES -A INPUT -i eth1 -s 192.168.1.0/24 -m state --state ESTABLISHED,RELATED -j ACCEPT
+$IPTABLES -A INPUT -i eth1 -s 192.168.1.0/24 -p tcp  -m multiport --destination-port 20,21,22,53,80,137,138,139,443,445,3306,8408 -m state --state NEW -j ACCEPT
+$IPTABLES -A INPUT -i eth1 -s 192.168.1.0/24 -p udp --dport 53 -m state --state NEW -j ACCEPT
+$IPTABLES -A OUTPUT -o eth1 -d 192.168.1.0/24 -j ACCEPT
+
+# Accept all ESTABLISHED,RELATED packets at this stage
+$IPTABLES -A INPUT   -i eth0 -m state --state ESTABLISHED,RELATED -j ACCEPT
+$IPTABLES -A OUTPUT  -o eth0 -m state --state ESTABLISHED,RELATED -j ACCEPT
+$IPTABLES -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Allow all on loopback
+$IPTABLES -A INPUT -i lo  -s 127.0.0.1 -j ACCEPT
+$IPTABLES -A OUTPUT -o lo  -d 127.0.0.1 -j ACCEPT
+
+# Allow all outgoing connections
+$IPTABLES -A OUTPUT -o eth0 -m state --state NEW -j OUT_LIMIT
+
+if [ -f $GETIPSSCRIPT ]; then
+for i in `$GETIPSSCRIPT`
+do
+        # Allow all on loopback
+        $IPTABLES -A INPUT -i lo  -s $i -j ACCEPT
+        $IPTABLES -A OUTPUT -o lo  -d $i -j ACCEPT
+
+        # Allow all outgoing connections
+        $IPTABLES -A INPUT  -s $i -m state --state NEW -j IN_LIMIT
+        $IPTABLES -A FORWARD  -s $i -m state --state NEW -j OUT_LIMIT
+done
+fi
+
+# Drop blocked IP's
+if [ -f $BLOCKLISTFILE ]; then
+for i in `$CAT $BLOCKLISTFILE`
+do
+       $IPTABLES -A INPUT -i eth0 -s $i -j DROP
+       $IPTABLES -A OUTPUT -o eth0 -d $i -j DROP
+done
+fi
+
+# Only allow authorized ICMP
+$IPTABLES -A INPUT -i eth0 -p icmp --icmp-type 11/1  -m state --state NEW -j IN_LIMIT
+$IPTABLES -A INPUT -i eth0 -p icmp --icmp-type 11/0  -m state --state NEW -j IN_LIMIT
+$IPTABLES -A INPUT -i eth0 -p icmp --icmp-type 0/0  -m state --state NEW -j IN_LIMIT
+$IPTABLES -A INPUT -i eth0 -p icmp --icmp-type 8/0  -m state --state NEW -j IN_LIMIT
+$IPTABLES -A INPUT -i eth0 -p icmp --icmp-type 3 -m state --state NEW -j IN_LIMIT
+
+# Open port 53 UDP for DNS services
+$IPTABLES -A INPUT -i eth0 -p udp --destination-port 53 -m state --state NEW -j IN_LIMIT
+
+#AdminGeekZ - 19th April 2007
+#TCP dns (Required to be RFC compliant)
+$IPTABLES -A INPUT -i eth0 -p tcp --destination-port 53 -m state --state NEW -j IN_LIMIT
+
+# Open various TCP ports
+if [ -f $PORTLISTFILE ]; then
+for i in `$CAT $PORTLISTFILE`
+do
+        $IPTABLES -A INPUT -i eth0 -p tcp --dport $i -m state --state NEW -j IN_LIMIT
+done
+fi
+
+# IP addresses on the safe list can connect to SSH and MySQL
+if [ -f $SAFELISTFILE ]; then
+for i in `$CAT $SAFELISTFILE`
+do
+       $IPTABLES -A INPUT -i eth0 -s $i -p tcp  -m multiport --destination-port 22,3306 -j IN_LIMIT
+done
+fi
+
+# SSH connection for support from India
+$IPTABLES -A INPUT -i eth0 -s 203.193.0.0/16 -p tcp --dport 22 -j IN_LIMIT
+
+$IPTABLES -A INPUT -j DROP_END
+$IPTABLES -A OUTPUT -j DROP_END
+$IPTABLES -A FORWARD -j DROP_END
+
+echo "... Ok"

@@ -1,0 +1,12 @@
+killlog.pl
+
+
+#!/usr/bin/perl
+
+foreach $i (`/bin/ls -d /home/virtual/site*`) {
+        chomp( $i);
+        foreach $j (`/bin/ls $i/fst/var/log/httpd`) {
+                chomp( $j );
+                system "rm $i/fst/var/log/httpd/$j\n";
+        }
+}

@@ -1,0 +1,46 @@
+man vzctl
+vzctl set 2002 --diskspace 100G:100G --save
+vzctl set 2003 --diskspace 100000M:100000M --save
+
+cd /etc/sysconfig/vz-scripts/
+  523  ls
+  524  grep -l 65.182.191.64 *
+
+vzctl --help | grep -i disk
+
+
+553  vzctl set 2001 --quotagidlimit 2000 --save
+  554  vzctl
+  555  vzctl set 2001 --quotaugidlimit 2000 --save
+  556  vzctl stop 2001
+  557  vzctl start 2001
+  558  vzctl enter 2002
+  559  cd /vz
+  560  ls
+  561  ls -alh
+  562  cd
+  563  df -h
+  564  cat /etc/fstab
+  565  cd /vz/
+  566  ls
+  567  cd
+  568  exit
+  569  vzlist
+  570  vzctl set 2001 --slmmemorylimit 102400000
+  571  vzctl set 2001 --slmmemorylimit 102400000 --save
+  572  vzctl restart 2001
+
+
+vzctl create 2003 {--pkgset <set> [--pkgver <ver>] | --ostemplate <name>}
+
+
+vi /etc/vz/conf/VEID.conf
+
+
+  271  cd /etc/vz
+  272  ls
+  273  vi vz.conf
+
+
+
+vzctl create 2003 --ostemplate centos-5-x86 --hostname

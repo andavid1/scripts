@@ -1,0 +1,26 @@
+fpfix.pl
+
+
+#!/usr/bin/perl
+
+foreach $i (`/usr/local/frontpage/version5.0/bin/owsadm.exe -o check -p all`) {
+        if( $i =~ /Starting check\, port\: www\.([\w\-\.]+)\:80/ ) {
+                push @domains, $1;
+        }
+}
+
+foreach $i (@domains) {
+        print "$i:\n";
+
+        if( $i eq "ballingervconrad.com" ) {
+                print "Skipped\n";
+                next;
+        }
+
+        system( "EditVirtDomain -D $i -c frontpage,enabled=0" );
+        system( "EditVirtDomain -D $i -c frontpage,enabled=1" );
+
+        print "-"x79 . "\n\n";
+
+        sleep( 10 );
+}

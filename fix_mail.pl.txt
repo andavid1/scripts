@@ -1,0 +1,56 @@
+fix_mail.pl
+
+
+#!/usr/bin/perl
+
+sub run_cmd {
+        my ($cmd) = @_;
+
+        print " -> $cmd\n";
+
+        if( $result = system( $cmd )) {
+                print "Error: \"$cmd\" returned ($result)\n";
+        }
+
+        if( $result ) {
+                <STDIN>;
+        }
+
+        return $result;
+}
+
+foreach $i (`/bin/ls /home/virtual`) {
+        chomp( $i );
+        next unless( $i =~ /site(\d+)/ );
+        $site_num = $1;
+
+        unless( -d "/home/virtual/site${site_num}/fst/var/spool/clientmqueue" ) {
+                run_cmd( "/bin/mkdir -p /home/virtual/site${site_num}/fst/var/spool/clientmqueue" );
+                run_cmd( "/bin/chown admin${site_num}:smmsp /home/virtual/site${site_num}/fst/var/spool/clientmqueue" );
+        }
+
+        unless( -d "/home/virtual/site${site_num}/fst/var/spool/lpd" ) {
+                run_cmd( "/bin/mkdir -p /home/virtual/site${site_num}/fst/var/spool/lpd" );
+                run_cmd( "/bin/chown root:root /home/virtual/site${site_num}/fst/var/spool/lpd" );
+        }
+
+        unless( -d "/home/virtual/site${site_num}/fst/var/spool/mail" ) {
+                run_cmd( "/bin/mkdir -p /home/virtual/site${site_num}/fst/var/spool/mail" );
+                run_cmd( "/bin/chown admin${site_num}:admin${site_num} /home/virtual/site${site_num}/fst/var/spool/mail" );
+        }
+
+        unless( -d "/home/virtual/site${site_num}/fst/var/spool/mail.quarantine" ) {
+                run_cmd( "/bin/mkdir -p /home/virtual/site${site_num}/fst/var/spool/mail.quarantine" );
+                run_cmd( "/bin/chown root:admin${site_num} /home/virtual/site${site_num}/fst/var/spool/mail.quarantine" );
+        }
+
+        unless( -d "/home/virtual/site${site_num}/fst/var/spool/mqueue" ) {
+                run_cmd( "/bin/mkdir -p /home/virtual/site${site_num}/fst/var/spool/mqueue" );
+                run_cmd( "/bin/chown root:admin${site_num} /home/virtual/site${site_num}/fst/var/spool/mqueue" );
+        }
+
+        unless( -d "/home/virtual/site${site_num}/fst/var/spool/mqueue.site" ) {
+                run_cmd( "/bin/mkdir -p /home/virtual/site${site_num}/fst/var/spool/mqueue.site" );
+                run_cmd( "/bin/chown root:admin${site_num} /home/virtual/site${site_num}/fst/var/spool/mqueue.site" );
+        }
+}

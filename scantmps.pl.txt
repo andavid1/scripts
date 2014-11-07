@@ -1,0 +1,36 @@
+scantmps.pl
+
+
+#!/usr/bin/perl
+
+sub scanDir {
+        my ($filename, $str) = @_;
+
+        if( -d $filename ) {
+                print "Scanning $filename ...\n";
+
+                if( $str ) {
+                        $ls = `/bin/ls $filename | /bin/grep $str`;
+                } else {
+                        $ls = `/bin/ls $filename`;
+                }
+
+                if( $ls ) {
+                        print "\n" . "-"x79 . "\n";
+                        print "-> $filename :\n";
+                        print "$ls";
+                        print "-"x79 . "\n\n";
+                }
+        } else {
+                print "*** Error: \"$filename\" does not exist.\n";
+        }
+}
+
+foreach $i (`/bin/ls /home/virtual/`) {
+        next unless( $i =~ /^site(\d+)$/ );
+        $site_num = $1;
+
+        scanDir( "/home/virtual/site${site_num}/fst/tmp", $ARGV[0] );
+        scanDir( "/home/virtual/site${site_num}/fst/var/tmp", $ARGV[0] );
+}
+

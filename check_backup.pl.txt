@@ -1,0 +1,114 @@
+check_backup.pl
+
+
+#!/usr/bin/perl
+
+# Constants
+$TMP_DIR = "/home/tmp";
+$SITE_DIR = "/home/virtual";
+$BACKUP_DIR = "/mnt/backup/ns3";
+
+sub run_cmd {
+        my ($cmd) = @_;
+        my $now, @date_array, $result;
+
+        @date_array = localtime();
+        $date_array[0] = '0' . $date_array[0] if( length( $date_array[0] ) == 1 );
+        $date_array[1] = '0' . $date_array[1] if( length( $date_array[1] ) == 1 );
+        $date_array[2] = '0' . $date_array[2] if( length( $date_array[2] ) == 1 );
+
+        print "\t[" . $date_array[2] . ":" . $date_array[1] . ":" . $date_array[0] . "] -> " . $cmd . "\n";
+
+        if( $debug_mode ) {
+                if( $debug_mode == 2 ) {
+                        print "\tDEBUG: [y/N] > ";
+                        $ans = <STDIN>;
+                        return 0 unless( $ans =~ /^y/i );
+                } else {
+                        return 0;
+                }
+        }
+
+        if( $result = system( "$cmd 2>&1" ) && $result != 512 ) {
+                print "*** Error: '$cmd' returned ($result)\n";
+                return $result;
+        }
+
+        return 0;
+}
+
+foreach $i (`/bin/ls -lA /home/virtual`) {
+        next if( $i =~ /\s+site\d+/ || $i =~ /\s+admin\d+\s+/ );
+
+        if( $i =~ /([\w\-\.]+)\s*\-\>\s*\/home\/virtual\/site(\d+)/ ) {
+                $site_nums{$1} = $2;
+                $site_names{$2} = $1;
+                # print $site_nums{$1} . " : " . $site_names{$2} . "\n";
+        }
+}
+
+$debug_mode = 0;
+
+foreach $i (`/bin/ls ${BACKUP_DIR}`) {
+        next unless( $i =~ /^([\w\.\-]+)\.site(\d+)\.full\.tar\.gz$/ );
+        $name = $1;
+        $num = $2;
+
+        # print $num . " - " . $name . "\n";
+        $print_out = 0;
+
+        if( $names{$num} ) {
+                $print_out = 1;
+
+                print "Site number '$num' is used for '" . $names{$num} . "' and '$name'\n";
+                print "Site number '$num' corresponds to '" . $site_names{$num} . "'\n";
+
+                if( $site_names{$num} eq $names{$num} ) {
+                        run_cmd( "/bin/rm -f ${BACKUP_DIR}/${name}.site${num}.full.tar.gz" );
+                } elsif( $site_names{$num} eq $name ) {
+                        run_cmd( "/bin/rm -f ${BACKUP_DIR}/" . $names{$num} . ".site${num}.full.tar.gz" );
+                }
+
+        }
+
+        if( $nums{$name} ) {
+                $print_out = 1;
+
+                print "Site named '$name' uses both " . $nums{$name} . " and $num\n";
+                print "Site named '$name' corresponds to '" . $site_nums{$name} . "'\n";
+
+                if( $site_nums{$name} eq $nums{$name} ) {
+                        run_cmd( "/bin/rm -f ${BACKUP_DIR}/${name}.site${num}.full.tar.gz" );
+                } elsif( $site_nums{$name} eq $num ) {
+                        run_cmd( "/bin/rm -f ${BACKUP_DIR}/${name}.site" . $nums{$name} . ".full.tar.gz" );
+                }
+        }
+
+        if( !$site_nums{$name} ) {
+                $print_out = 1;
+                print "Backup found for site: '$name' not found on server.\n";
+        }
+
+        if( !$site_names{$num} ) {
+                $print_out = 1;
+                print "Backup found for site number: '$num' not found on server.\n";
+        }
+
+        if( !$site_nums{$name} && !$site_names{$num} ) {
+                run_cmd( "/bin/rm -f ${BACKUP_DIR}/${name}.site${num}.full.tar.gz" );
+        }
+
+        $names{$num} = $name;
+        $nums{$name} = $num;
+
+        if( $print_out ) {
+                print "="x79 . "\n\n";
+        }
+}
+
+foreach $i (values %site_names) {
+        unless( $nums{$i} ) {
+                print "There is no backup for '$i'.\n";
+                next;
+        }
+}

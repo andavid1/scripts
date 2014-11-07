@@ -1,0 +1,36 @@
+ scanlogs.pl
+
+#!/usr/bin/perl
+
+sub scanFile {
+        my ($filename) = @_;
+
+        if( -T $filename ) {
+                print "Scanning $filename ...\n";
+                $grep = `/bin/grep -e \"$ARGV[0]\" $filename`;
+
+                if( $grep ) {
+                        print "\n" . "-"x79 . "\n";
+                        print "-> $filename :\n";
+                        print "$grep";
+                }
+        } else {
+                print "*** Error: \"$filename\" does not exist.\n";
+        }
+}
+
+unless( $ARGV[0] ) {
+        print "Usage: $0 <pattern>\n";
+        exit( 0 );
+}
+
+foreach $i (`/bin/ls /home/virtual/`) {
+        next unless( $i =~ /^site(\d+)$/ );
+        $site_num = $1;
+
+        scanFile( "/home/virtual/site${site_num}/fst/var/log/httpd/access_log" );
+        scanFile( "/home/virtual/site${site_num}/fst/var/log/httpd/access_log.1" );
+        scanFile( "/home/virtual/site${site_num}/fst/var/log/httpd/error_log" );
+        scanFile( "/home/virtual/site${site_num}/fst/var/log/httpd/error_log.1" );
+}
+

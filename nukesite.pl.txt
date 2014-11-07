@@ -1,0 +1,100 @@
+nukesite.pl
+
+
+#!/usr/bin/perl
+
+$dbname = "appldb";
+use DBI;
+
+if( $ARGV[0] =~ /^\d+$/ ) {
+        $X = $ARGV[0];
+} else {
+        print "Please specify a site number.\n";
+        exit( 0 );
+}
+
+$dbh = DBI->connect( "dbi:Pg:dbname=$dbname", "", "");
+
+sub run_cmd {
+        my ($cmd) = @_;
+        my $n = 0;
+
+        print "Running: $cmd\n";
+
+        if( $n = system( $cmd )) {
+                print( "\"$cmd\" returned an error ($n)" );
+        }
+
+        return $n;
+}
+
+# This subroutine handles MySQL query statements
+sub do_sql {
+        my( $dbh, $query ) = @_;
+
+        my $sth;
+
+        unless( $sth = $dbh->prepare( $query ) ) {
+                print( "SQL Query \"$query\" produced an error.\n" .
+                        "SQL Error Message: \"" . $dbh->errstr . "\"\n" );
+                exit( 1 );
+        }
+
+        unless( $sth->execute ) {
+                print( "SQL Query \"$query\" failed to execute.\n" .
+                        "SQL Error Message: \"" . $dbh->errstr . "\"\n" );
+                exit( 1 );
+        }
+
+        $rv = $sth->rows;
+        print "Query: \"$query\" effected $rv rows.\n";
+
+        return $sth;
+}
+
+foreach $i (`ls -laF /home/virtual/`) {
+        chomp( $i );
+
+        if( $i =~ /(\S+) \-\> \/home\/virtual\/site(\d+)\/fst\// ) {
+                $domains{$2} = $1;
+                next;
+        }
+}
+
+print "Are you sure you want to delete \"$domains{$X}\" (site $X)? ";
+$y = <STDIN>;
+
+unless( $y =~ /^y/i ) {
+        exit( 0 );
+}
+
+run_cmd( "/bin/rm -rf /home/virtual/site$X" );
+run_cmd( "/bin/rm -f /home/virtual/admin$X" );
+
+if( $domains{$X} ) {
+        run_cmd( "/bin/rm -f /home/virtual/$domains{$X}" );
+}
+
+run_cmd( "/bin/rm -f /etc/httpd/conf/virtual/site$X" );
+run_cmd( "/bin/rm -f /etc/httpd/conf/virtual.preview/site$X" );
+run_cmd( "/bin/rm -rf /etc/httpd/conf/site$X" );
+run_cmd( "/bin/rm -rf /etc/httpd/conf/site$X\.preview" );
+run_cmd( "/usr/sbin/userdel admin$X" );
+
+do_sql( $dbh, "delete from users where site_id = $X" );
+do_sql( $dbh, "delete from bandwidth_log where site_id = $X" );
+do_sql( $dbh, "delete from bandwidth_spans where site_id = $X" );
+do_sql( $dbh, "delete from bandwidth where site_id = $X" );
+do_sql( $dbh, "delete from siteinfo where site_id = $X" );
+do_sql( $dbh, "delete from free_uids where site_id = $X" );
+do_sql( $dbh, "delete from diskquota where site_id = $X" );
+do_sql( $dbh, "delete from ipinfo where site_id = $X" );
+do_sql( $dbh, "delete from ipinfo_ipaddrs where site_id = $X" );
+do_sql( $dbh, "delete from ipinfo_nbaddrs where site_id = $X" );
+do_sql( $dbh, "delete from reseller where site_id = $X" );
+do_sql( $dbh, "delete from siteinfo where site_id = $X" );
+
+run_cmd( "/bin/cat /etc/virtualhosting/mappings/domainmap | /bin/grep -v site$X > /etc/virtualhosting/mappings/domainmap.new" );
+run_cmd( "/bin/mv /etc/virtualhosting/mappings/domainmap /etc/virtualhosting/mappings/domainmap.old" );
+run_cmd( "/bin/mv /etc/virtualhosting/mappings/domainmap.new /etc/virtualhosting/mappings/domainmap" );
+

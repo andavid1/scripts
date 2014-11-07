@@ -1,0 +1,161 @@
+editDNS.pl
+
+#!/usr/bin/perl
+
+# Get the number of seconds since Jan 1, 1970
+$now = time();
+
+# Create the $today variable (a prety version of the date)
+@date_array = localtime( $now );
+$year = $date_array[5] + 1900;
+$mon = $date_array[4] + 1;
+$day = $date_array[3];
+$mon = "0" . $mon if( length( $mon ) == 1 );
+$day = "0" . $day if( length( $day ) == 1 );
+$today = "${year}${mon}${day}";
+
+if( $ARGV[0] !~ /^[\w\.\-\_]+$/ ) {
+        print "Error: '$ARGV[0]' does not appear to be a valid domain name.\n";
+        exit( 1 );
+} else {
+        $domain = $ARGV[0];
+}
+
+if( $ARGV[1] !~ /^[\w\.\-\_]+$/ ) {
+        print "Error: '$ARGV[1]' does not appear to be a nameserver.\n";
+        exit( 1 );
+} else {
+        $servername = $ARGV[1];
+}
+
+$ns_count = 1;
+
+if( -e "/var/named/db.$domain" ) {
+        foreach $i (`cat /var/named/db.$domain`) {
+
+                if( $i =~ /NS\s+([\w\.\-\_]+)/ ) {
+                        $ns_records[$ns_count] = $1;
+                        $ns_count++;
+                }
+
+                if( $i =~ /A\s+([\d\.]+)/ ) {
+                        $a_records{'@'} = $1;
+                }
+
+                if( $i =~ /([\w\.\-\_]+)\s+A\s+([\d\.]+)/ ) {
+                        $a_records{$1} = $2;
+                }
+
+                if( $i =~ /MX\s+(\d+)\s+([\w\.\-\_]+)/ ) {
+                        $mx_records{$2} = $1;
+                }
+
+                if( $i =~ /(\d+)\s+;\s+serial/ ) {
+                        $serial = $1;
+                }
+        }
+}
+
+$param = 0;
+
+foreach $i (@ARGV) {
+        $param++;
+        next if( $param < 3 );
+
+        @vals = split( ":", $i );
+
+        if( $#vals != 2 ) {
+                print "Error: Invalid parameter: '$i'\n";
+                exit( 1 );
+        }
+
+        if( $vals[1] eq 'A' ) {
+                $a_records{$vals[0]} = $vals[2];
+        } elsif( $vals[1] eq 'MX' ) {
+                $mx_records{$vals[0]} = $vals[2];
+        } elsif( $vals[1] eq 'NS' ) {
+                $ns_records[$vals[0]] = $vals[2];
+        } else {
+                print "Error: Invalid parameter: '$i'\n";
+                exit( 1 );
+        }
+}
+
+if( system( "grep -q \"zone.$domain\" /etc/bind/bind.conf.wp" )) {
+        system( "echo 'include \"/etc/bind/zone.$domain\";' >> /etc/bind/bind.conf.wp" );
+}
+
+if( !( -e "/etc/bind/zone.$domain" )) {
+        open( ZONEFILE, ">/etc/bind/zone.$domain" ) or die "Cannot write to /etc/bind/zone.$domain\n";
+
+        print ZONEFILE <<EOF;
+zone "$domain" IN {
+        type master;
+        file "/var/named/db.$domain";
+        allow-update   { key "wp_default_key."; };
+        allow-transfer { localhost; };
+};
+EOF
+        close( ZONEFILE );
+}
+
+if( -e "/var/named/db.$domain" ) {
+        if( system( "mv /var/named/db.${domain} /var/named/db.${domain}.bak" )) {
+                print "Error renaming /var/named/db.$domain\n";
+                exit( 1 );
+        }
+}
+
+if( $serial =~ /^(\d+)(\d{2,2})$/ ) {
+        $serial_date = $1;
+        $serial_issue = $2;
+} else {
+        $serial = "${today}01";
+}
+
+if( $serial_date eq $today ) {
+        $serial++;
+} else {
+        $serial = "${today}01";
+}
+
+if( !( -e "/var/named/db.$domain")) {
+        open( ZONEFILE, ">/var/named/db.$domain" ) or die "Cannot write to /var/named/db.$domain\n";
+
+        print ZONEFILE <<EOF;
+\$ORIGIN .
+\$TTL 3600       ; 1 hour
+${domain}          IN SOA  ${servername}. admin.webserve.ca. (
+                                $serial ; serial
+                                3600       ; refresh (1 hour)
+                                600        ; retry (10 minutes)
+                                86400      ; expire (1 day)
+                                3600       ; minimum (1 hour)
+                                )
+EOF
+
+        foreach $i (@ns_records) {
+                next unless( $i );
+                print ZONEFILE "\t\t\tNS\t$i\n";
+        }
+
+        print ZONEFILE "\$TTL 86400      ; 1 day\n";
+        print ZONEFILE "\t\t\tA\t" . $a_records{'@'} . "\n";
+
+        foreach $i (keys %mx_records) {
+                print ZONEFILE "\t\t\tMX " . $i . $mx_records{$i} . "\n";
+        }
+
+        print ZONEFILE "\$ORIGIN ${domain}.\n";
+
+        foreach $i (keys %a_records) {
+                next if( $i eq "@" );
+                print ZONEFILE "$i\t\t\tA\t" . $a_records{$i} . "\n";
+        }
+
+        close( ZONEFILE );
+}
+
+system( "touch /etc/restart-named" );
+
+exit( 0 ); 

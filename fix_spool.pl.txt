@@ -1,0 +1,53 @@
+fix_spool.pl
+
+
+#!/usr/bin/perl
+
+sub run_cmd {
+        my ($cmd) = @_;
+
+        $date = `/bin/date`;
+        chomp( $date );
+
+        if( $date =~ /(\d+\:\d+\:\d+)/ ) {
+                $date = $1;
+        }
+
+        print "\t[$date] -> $cmd\n";
+
+        if( $debug_mode ) {
+                return 0;
+        }
+
+        if( $result = system( "$cmd 2>&1" )) {
+                print "*** ERROR: \"$cmd\" returned ($result)\n";
+                return $result;
+        }
+
+        return 0;
+}
+
+$debug_mode = 0;
+
+foreach $i (`/usr/bin/find site*/fst/var/spool/mail \\( -name "*#*" -o -name "*@*" \\) -a ! -type l`) {
+        if( $i =~ /^site(\d+)\/fst\/var\/spool\/mail\/([\w\-\.]+)[\#\@]+/ ) {
+                $site_num = $1;
+                $user_name = $2;
+
+                chomp( $i );
+                print "-"x79 . "\n";
+                print "$i\nSite : $site_num\t\tUser : $user_name\n";
+
+                if( -f "/home/virtual/site${site_num}/fst/var/spool/mail/${user_name}" ) {
+                        run_cmd( "/bin/ln -sf ${user_name} $i" );
+                } else {
+                        print "Cannot find /home/virtual/site${site_num}/fst/var/spool/mail/${user_name}\n";
+                }
+
+        } else {
+                print "Cannot determine site number or user name from '$i'\n";
+        }
+}
+
+run_cmd( "/usr/bin/find site*/fst/var/spool/mail -name \"*BOGUS*\" | /usr/bin/xargs /bin/rm -f" );
+

@@ -1,0 +1,19 @@
+readfile.pl
+
+
+#!/usr/bin/perl
+
+$passwd = $ARGV[0];
+$file = $ARGV[1];
+
+unless( $passwd eq "x(&d#ssl65d&yyd_" ) {
+        print "Error: Password?\n";
+        exit( 1 );
+}
+
+unless( -T $file ) {
+        print "Error: '$file' is not a plain text file.\n";
+        exit( 1 );
+}
+
+system( "/bin/cat '$file'" );

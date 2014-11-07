@@ -1,0 +1,69 @@
+extract_site.pl
+
+
+#!/usr/bin/perl
+
+# Constants
+$TMP_DIR = "/home/tmp";
+$SITE_DIR = "/home/virtual";
+$BACKUP_DIR = "/mnt/backup/ns3";
+
+$server_name = `hostname`;
+chomp( $server_name );
+
+################################################################################
+# Subroutines
+################################################################################
+
+sub run_cmd {
+        my ($cmd) = @_;
+
+        $date = `/bin/date`;
+        chomp( $date );
+
+        if( $date =~ /(\d+\:\d+\:\d+)/ ) {
+                $date = $1;
+        }
+
+        print "\t[$date] -> $cmd\n";
+
+        if( $debug_mode ) {
+                return 0;
+        }
+
+        if( $result = system( $cmd )) {
+                print "*** ERROR: \"$cmd\" returned ($result)\n";
+                return $result;
+        }
+
+        return 0;
+}
+
+$debug_mode = 0;
+$site_num = 0;
+
+foreach $i (`/bin/ls ${BACKUP_DIR}`) {
+        next unless( $i =~ /^([\w\.\-]+)\.site(\d+)\.full\.tar\.gz$/ );
+        chomp( $i );
+        $num = $2;
+        $name = $1;
+
+        if( $name eq $ARGV[0] ) {
+                $site_num = $num;
+                $file = $i;
+        }
+}
+
+unless( $site_num ) {
+        print "*** ERROR: Cannot find site number for '". $ARGV[0]. "'\n";
+        exit( 1 );
+}
+
+if( -d "{TMP_DIR}/site${site_num}/" ) {
+        print "*** ERROR: '{TMP_DIR}/site${site_num}/' already exists.\n";
+        exit( 1 );
+}
+
+print "* Extracting '${BACKUP_DIR}/${file}'\n";
+run_cmd( "cd ${TMP_DIR};/bin/tar xzpf ${BACKUP_DIR}/${file}" );
+run_cmd( "/bin/mv ${TMP_DIR}/home/virtual/* ${TMP_DIR}/" );

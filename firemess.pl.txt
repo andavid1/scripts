@@ -1,0 +1,66 @@
+firemess.pl
+
+#!/usr/bin/perl
+
+sub tcpSort {
+        my $v1 = $a;
+        my $v2 = $b;
+
+        $v1 =~ /^(\d+)/;
+        $n1 = $1;
+        $v2 =~ /^(\d+)/;
+        $n2 = $1;
+
+        return $n2 <=> $n1;
+}
+
+if( $ARGV[0] eq "-d" ) {
+        foreach $i (`/bin/cat /var/log/messages`) {
+                if( $i =~ /FIREWALL\_(\d+).+DST\=(\d+\.\d+\.\d+\.\d+)/ ) {
+                        $ip_n{$1}{$2}++;
+                        $ips{$2}++;
+                }
+        }
+} else {
+
+        foreach $i (`/bin/cat /var/log/messages`) {
+                if( $i =~ /FIREWALL\_(\d+).+SRC\=(\d+\.\d+\.\d+\.\d+)/ ) {
+                        $ip_n{$1}{$2}++;
+                        $ips{$2}++;
+                }
+        }
+}
+
+for( $rule = 1; $rule < 6; $rule++ ) {
+        print "\nFirewall rule: $rule\n";
+        print "-----------------\n";
+
+        @list = ();
+
+        foreach $i (keys %{$ip_n{$rule}}) {
+                push( @list, "$ip_n{$rule}{$i}\t$i" );
+        }
+
+        $n = 0;
+        foreach $i (sort tcpSort @list) {
+                print "$i\n";
+                last if( $n > 5 );
+                $n++;
+        }
+}
+
+print "\nOverall:\n";
+print "-----------------\n";
+
+@list = ();
+
+foreach $i (keys %ips) {
+        push( @list, "$ips{$i}\t$i" );
+}
+
+$n = 0;
+foreach $i (sort tcpSort @list) {
+        print "$i\n";
+        last if( $n > 5 );
+        $n++;
+}

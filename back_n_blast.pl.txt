@@ -1,0 +1,36 @@
+back_n_blast.pl
+
+
+#!/usr/bin/perl
+
+sub run_cmd {
+        my ($cmd) = @_;
+        my $now, @date_array, $result;
+
+        $now = time();
+        @date_array = localtime( $now );
+        $date_array[0] = '0' . $date_array[0] if( length( $date_array[0] ) == 1 );
+        $date_array[1] = '0' . $date_array[1] if( length( $date_array[1] ) == 1 );
+        $date_array[2] = '0' . $date_array[2] if( length( $date_array[2] ) == 1 );
+
+        print "\t[" . $date_array[2] . ":" . $date_array[1] . ":" . $date_array[0] . "] -> " . $cmd . "\n";
+
+        if( $debug_mode ) {
+                return 0;
+        }
+
+        if( $result = system( "$cmd 2>&1" ) && $result != 512 ) {
+                print "*** Error: '$cmd' returned ($result)\n";
+                return $result;
+        }
+
+        return 0;
+}
+
+foreach $i (`/bin/cat back_n_blast.lst`) {
+        chomp( $i );
+
+        print "="x79 . "\n$i :\n";
+        run_cmd( "/root/bin/backup_site.pl $i\n" );
+        run_cmd( "/usr/local/bin/DeleteVirtDomain $i\n" );
+}

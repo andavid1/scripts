@@ -1,0 +1,13 @@
+get_ips.pl
+
+#!/usr/bin/perl
+
+foreach $i (`/sbin/ip addr`) {
+        if( $i =~ /(\d+\.\d+\.\d+\.\d+)/ ) {
+                $ip = $1;
+
+                unless( $ip =~ /^127/ || $ip =~ /^0/ ) {
+                        print "$ip\n";
+                }
+        }
+}

@@ -1,0 +1,21 @@
+killquarantine.pl
+
+#!/usr/bin/perl
+
+sub run_cmd {
+        my ($cmd) = @_;
+
+        print "-> $cmd\n";
+
+        if( $result = system( "$cmd 2>&1" )) {
+                print "Error: \"$cmd\" returned ($result)\n";
+        }
+}
+
+foreach $i (`/bin/ls -d /home/virtual/site*`) {
+        chomp( $i);
+
+        print "$i:\n";
+
+        run_cmd( "/bin/rm -rf $i/fst/var/spool/mail.quarantine/*" );
+}

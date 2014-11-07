@@ -1,0 +1,72 @@
+#!/bin/bash
+EMAIL="customer email"
+TEMPFILE=$(mktemp)
+SUBJECT="PLESK Backup of $(hostname) Completed"
+
+
+FTP_HOST="209.62.43.114"
+FTP_USER="backupuser"
+FTP_PASS="4W02GlZSd7d2"
+DIR="hostname"
+date=`/bin/date +%F`
+
+cd /backup
+rm -rf dump*
+
+echo "EZSM PLESK Backup Script..." >> $TEMPFILE
+echo "=============================" >> $TEMPFILE
+echo "Backup Start Date/Time: $(date)" >> $TEMPFILE
+echo "Performing Backup..." >> $TEMPFILE
+
+nice -10 /usr/local/psa/bin/pleskbackup -v --split=01G all dump > /backup/psadump.log
+
+ncftp -u $FTP_USER -p $FTP_PASS $FTP_HOST <<**
+cd $DIR
+rm -rf dump3
+rename dump2 dump3
+rename dump1 dump2
+mkdir dump1
+cd dump1
+lcd /backup
+mput dump*
+**
+
+echo "Backup End Date/Time: $(date)" >> $TEMPFILE
+echo "=============================" >> $TEMPFILE
+echo "=============================" >> $TEMPFILE
+cat /backup/psadump.log >> $TEMPFILE
+mail -s "$SUBJECT" "$EMAIL" < $TEMPFILE
+rm -f $TEMPFILE
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=
+
+#!/bin/bash
+
+EMAIL="mailto:reda.chebli@marochost.org"
+TEMPFILE=$(mktemp)
+SUBJECT="PLESK Backup of $(hostname) Completed"
+
+echo "=============================" >> $TEMPFILE
+echo "Backup Start Date/Time: $(date)" >> $TEMPFILE
+echo "Rotating Backups..." >> $TEMPFILE
+
+/bin/rm -Rf  /backup/dump4
+/bin/mv /backup/dump3 /backup/dump4
+/bin/mv /backup/dump2 /backup/dump3
+/bin/mv /backup/dump1 /backup/dump2
+/bin/mkdir /backup/dump1
+ echo "Complete..." >> $TEMPFILE
+echo "Performing Backup..." >> $TEMPFILE
+
+
+cd /backup/dump1
+/usr/local/psa/bin/pleskbackup --all backup
+tar -zcf urchin.tar.gz /usr/local/urchin >/dev/null 2>&1
+
+echo "Complete..." >> $TEMPFILE
+echo "Backup End Date/Time: $(date)" >> $TEMPFILE
+echo "=============================" >> $TEMPFILE
+echo "Backup Completed             " >> $TEMPFILE
+echo "=============================" >> $TEMPFILE
+mail -s "$SUBJECT" "$EMAIL" < $TEMPFILE
+rm -f $TEMPFILE

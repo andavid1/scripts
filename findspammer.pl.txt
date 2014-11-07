@@ -1,0 +1,22 @@
+findspammer.pl
+
+#!/usr/bin/perl
+
+$str = $ARGV[0];
+
+unless( $str ) {
+        print "Please specify a search string.\n";
+        exit( 1 );
+}
+
+foreach $i (`/bin/cat /var/log/maillog`) {
+        if( $i =~ /$str/ ) {
+                if( $i =~ /(\d+\.\d+\.\d+\.\d+)/ ) {
+                        $ip{$1}++;
+                }
+        }
+}
+
+foreach $i (keys %ip) {
+        print "$i $ip{$i}\n";
+}

@@ -1,0 +1,81 @@
+ block_ip.pl
+
+#!/usr/bin/perl
+
+sub usage {
+        print "Usage: $0 [-r] <ip-addr>\n";
+        print "\t-r: Remove\n";
+        print "\t-s: Add or remove from safelist\n";
+        exit( 0 );
+}
+
+$safe = 0;
+$remove = 0;
+$ip = 0;
+
+foreach $i (@ARGV) {
+        if( $i =~ /^(\d+\.\d+\.\d+\.\d+)$/ ) {
+                $ip = $1;
+        } elsif( $i eq "-r" ) {
+                $remove = 1;
+        } elsif( $i eq "-s" ) {
+                $safe = 1;
+        } else {
+                print "Invalid parameter: \"$i\"\n";
+                &usage;
+        }
+}
+
+if( $safe ) { 
+        $blocklist_file = "/etc/firewall/safelist";
+        $listname = "safelist";
+} else {
+        $blocklist_file = "/etc/firewall/blocklist";
+        $listname = "blocklist";
+}
+
+unless( -T $blocklist_file ) {
+        print "Cannot find '$blocklist_file'\n";
+        &usage;
+}
+
+unless( $ip ) {
+        print "IP address not specified.\n";
+        &usage;
+}
+
+foreach $i (`/bin/cat $blocklist_file`) {
+        chomp( $i );
+        $blocked{$i} = 1;
+}
+
+if( $remove ) {
+        if( $blocked{$ip} ) {
+                $blocked{$ip} = 0;
+                print "IP Address: \"$ip\" will be removed from the $listname.\n";
+        } else {
+                print "IP Address: \"$ip\" is not currently on the $listname.\n";
+                exit( 0 );
+        }
+} else {
+        if( $blocked{$ip} ) {
+                print "IP Address: \"$ip\" is already added to the $listname.\n";
+                exit( 0 );
+        } else {
+                $blocked{$ip} = 1;
+                print "IP Address: \"$ip\" will be added to the $listname.\n";
+        }
+}
+
+open( BLOCKLIST, ">$blocklist_file" ) or die "Cannot open \"$blocklist_file\"\n";
+
+foreach $i (sort keys %blocked) {
+        if( $blocked{$i} ) {
+                print BLOCKLIST "$i\n";
+        }
+}
+
+close( BLOCKLIST );
+
+system( "/sbin/service firewall start" );
+

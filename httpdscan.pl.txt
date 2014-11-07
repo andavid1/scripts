@@ -1,0 +1,59 @@
+httpdscan.pl
+
+
+#!/usr/bin/perl
+
+sub httpdscan {
+        my ($site_num) = @_;
+
+        if( $site_num ) {
+                $file_name = "/home/virtual/site${site_num}/fst/var/log/httpd/access_log";
+        } else {
+                $file_name = "/var/log/httpd/access_log";
+        }
+
+        foreach $i (`cat $file_name`) {
+
+                if( $i =~ /\\x\w+\\x\w+\\x\w+\\x\w+\\x\w+/ ) {
+                        $current_ip = "Unknown";
+
+                        if( $i =~ /^\s*(\d+\.\d+\.\d+\.\d+)\s+/ ) {
+                                $current_ip = $1;
+                        }
+
+                        elsif( $i =~ /^\s*([\w\-\_\.]+)\s+/ ) {
+                                $hostname = $1;
+
+                                ($addr) = (gethostbyname( $hostname ))[4];
+                                $current_ip = join( ".", unpack( "C4", $addr ));
+                        }
+
+                        $http_hits{$current_ip}++;
+                }
+
+        }
+}
+
+foreach $i (`cat /etc/blocklist`) {
+        if( $i =~ /(\d+\.\d+\.\d+\.\d+)/ ) {
+                $blocked{$1} = 1;
+        }
+}
+
+httpdscan( 0 );
+
+foreach $i (`/bin/ls /home/virtual`) {
+        if( $i =~ /site(\d+)/ ) {
+                httpdscan( $1 );
+        }
+}
+
+foreach $i (keys %http_hits) {
+        unless( $blocked{$i} ) {
+                print "$http_hits{$i}\t$i\n";
+                if( $i ne "Unknown" ) {
+                        system( "/bin/echo $i >> /etc/blocklist" );
+                }
+        }
+}
+

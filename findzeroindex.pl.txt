@@ -1,0 +1,23 @@
+findzeroindex.pl
+
+
+#!/usr/bin/perl
+
+foreach $i (`/bin/ls /home/virtual`) {
+        chomp( $i );
+
+        if( $i =~ /^site(\d+)/ ) {
+                $site_num = $1;
+
+                if( -z "/home/virtual/site${site_num}/fst/var/www/html/index.html" ) {
+
+                        foreach $j (`/bin/ls -lhAF /home/virtual | grep $site_num` ) {
+                                if( $j =~ /site(\d+)/ and $site_num == $1 ) {
+                                        print $j;
+                                }
+                        }
+
+                        print "-"x79 . "\n";
+                }
+        }
+}

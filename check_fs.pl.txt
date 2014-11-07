@@ -1,0 +1,51 @@
+check_fs.pl
+
+#!/usr/bin/perl
+
+sub tabSpace {
+        my( $str, $tabs ) = @_;
+
+        $space = ($tabs * 3) - length( $str );
+        return "$str" . " "x$space;
+}
+
+sub get_dir_size {
+        my( $dir ) = @_;
+
+        $dir_size = `/usr/bin/du -sh $dir`;
+        chomp( $dir_size );
+
+        if( $dir_size =~ /^([\w\.]+)\s+/ ) {
+                $size = $1;
+        } else {
+                print "*** Error: Output from '/usr/bin/du -sh $dir' not recognized: $dir_size\n";
+                return 0;
+        }
+
+        return $size;
+}
+
+$n = 0;
+
+foreach $i (`/bin/ls /home/virtual/`) {
+        next unless( $i =~ /site(\d+)$/ );
+        $site_num = $1;
+
+        $usr = get_dir_size( "/home/virtual/site$site_num/fst/usr" );
+        $bin = get_dir_size( "/home/virtual/site$site_num/fst/bin" );
+        $lib = get_dir_size( "/home/virtual/site$site_num/fst/lib" );
+        $dev =  get_dir_size( "/home/virtual/site$site_num/fst/dev" );
+
+        if( $n >= 10 ) {
+                print "-"x40 . "\n";
+                print tabSpace( "Site", 2 ) . "   " . tabSpace( "usr", 2 ) . tabSpace( "bin", 2 ) . 
+                        tabSpace( "lib", 2 ) . tabSpace( "dev", 2 ) . "\n";
+                print "-"x40 . "\n";
+                $n = 0;
+        }
+
+        print tabSpace( $site_num, 2 ) . " : " . tabSpace( $usr, 2 ) . tabSpace( $bin, 2) .
+                tabSpace( $lib, 2 ) . tabSpace( $dev, 2 ) . "\n";
+
+        $n++;
+}

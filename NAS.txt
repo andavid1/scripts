@@ -1,0 +1,54 @@
+CONFIGURING SERVICES:
+
+The Planet's NAS Backup solution can be utilized in different ways. You can access your backup space via FTP, Samba or Windows drive mapping. You can then setup cron or AT jobs to back up your content, copy data to your storage area manually as needed, utilize a public domain backup utility or any other method you choose. Below are some generic instructions for gaining access to your storage area. A ticket was created when you ordered NAS that contains your NAS server's IP address, your NAS username and password, and more detailed instructions on how to use your NAS backup service.
+
+
+Generic FTP:
+
+    * Open an FTP connection to your NAS backup server's IP address in the FTP client of your choice.
+    * Use the username and password provided for your NAS Backup service.
+    * Copy files to or from the server as you would with a standard FTP site. 
+
+
+
+Microsoft Windows Server Setup:
+
+    * Open Windows Explorer.
+    * On the Tools Menu, click Map Network Drive...
+    * Select a drive letter.
+    * Place \\<Your NAS backup server IP>\<username> in the Path line;
+      e.g. \\64.5.54.166\c12345-1
+    * Click the "Reconnect at logon" checkbox.
+    * Click OK.
+    * Login to the share with the username and password provided.
+    * Click the "Remember password" checkbox.
+    * Click OK. 
+
+This will attach your NAS Backup service to the drive letter you selected. At this point, the backup service operates like a drive directly connected to your server. Simply copy the files you wish to archive into the drive letter you have mapped to your NAS backup service.
+
+
+UNIX Setup:
+
+Assuming your system already has Samba installed and configured, issue the following command:
+
+smbmount //<Your NAS backup server IP>/<username> <mountpoint> -o username=<username>
+
+i.e.:
+smbmount //64.5.54.166/c1234abcd /mnt/backup -o username=c1234abcd
+
+For CentOS:
+CentOS 5 uses CIFS Client. This client primarly uses the same synax as used by SAMBA. To mount using CIFS:
+
+mount -t cifs //<Your NAS backup server IP>/<username> <mountpoint> -o username=<username>
+
+i.e.:
+mount -t cifs //64.5.54.166/c1234abcd /mnt/backup -o username=c1234abcd
+
+Samba will prompt you for your password. This will attach your NAS service to the mount point defined on the command line as though it was a local disk.
+
+
+IMPORTANT NOTE TO FIREWALL USERS:
+
+It is necessary to ensure the following UDP/TCP ports are open between your firewall and the NAS backup server: 20, 21, 137, 138, 139, 445.
+
+If you subscribe to managed firewall services, please open a ticket to have your firewall configured for NAS Backup services.

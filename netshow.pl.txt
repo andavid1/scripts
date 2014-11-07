@@ -1,0 +1,40 @@
+netshow.pl
+
+#!/usr/bin/perl
+
+$date = `date`;
+print $date;
+
+foreach $i (`netstat -vatn`) {
+        chomp( $i );
+
+        $i =~ /^\w+\s+\d+\s+\d+\s+[\.\:\d]+\s+([\.\:\d]+)/;
+        $ip = $1;
+        $ip =~ /^([\d\.]+)\:\d+/;
+        $ip = $1;
+
+        $ips{$ip}++;
+}
+
+$dropped{'207.6.180.228'} = ".";
+$dropped{'69.90.47.12'} = ".";
+$dropped{'69.90.47.13'} = ".";
+$dropped{'69.90.47.51'} = ".";
+$dropped{'69.90.47.50'} = ".";
+$dropped{'69.90.47.53'} = ".";
+$dropped{'69.90.47.67'} = ".";
+$dropped{'69.90.47.68'} = ".";
+$dropped{'69.90.47.52'} = ".";
+$dropped{'69.90.47.97'} = ".";
+
+foreach $i ( `/sbin/iptables -L -n` ) {
+        if( $i =~ /DROP\s+all\s+\-\-\s+([\d\.]+)\s+/ ) {
+                $dropped{$1} = $1;
+        }
+}
+
+foreach $i (sort keys %ips) {
+        unless( defined( $dropped{$i} )) {
+                print "$i\t\t$ips{$i}\n";
+        }
+}

@@ -1,0 +1,68 @@
+readmail.pl
+
+
+#!/usr/bin/perl
+
+unless( -f $ARGV[0] ) {
+        print "Cannot find file: $ARGV[0]\n";
+}
+
+system( "/bin/mv -f $ARGV[0] $ARGV[0].old" );
+
+open( NEWFILE, ">$ARGV[0]" ) or die "Cannot write to $ARGV[0]\n";
+
+$always_keep = 0;
+$show = 0;
+$msg = "";
+$prev_email = "";
+$email_addr = "";
+
+foreach $i (`cat $ARGV[0].old`) {
+        if( $i =~ /^\s*From MAILER-DAEMON/ ) {
+                $always_keep = 1;
+        }
+
+        if( $i =~ /^\s*From\s+([\w\-\_\.]+\@[\w\-\_\.]+)\s+\w+\s+\w+\s+\d+\s+\d+\:\d+\:\d+\s+\d+\s*$/ ) {
+                $prev_email = $email_addr;
+                $email_addr = $1;
+                $show = 1;
+
+                if( !$always_keep ) {
+                        print "\n(K)eep or (D)elete email from $prev_email? ";
+                        $input = <STDIN>;
+                }
+
+                if( $input =~ /^k/i || $always_keep ) {
+                        print NEWFILE $msg;
+                }
+
+                $msg = "";
+                $always_keep = 0;
+        }
+
+        if( $i =~ /Content\-disposition\: attachment/ || $i =~ /Content-Type\:/ ) {
+                $show = 0;
+        }
+
+        if( $show ) {
+                print $i;
+        }
+
+        $msg .= $i;
+}
+
+print "\n(K)eep or (D)elete email from $email_addr? ";
+$input = <STDIN>;
+
+if( $input =~ /^k/i ) {
+        print NEWFILE $msg;
+}
+
+close( NEWFILE );
+
+$ls = `/bin/ls -l $ARGV[0].old`;
+
+if( $ls =~ /^\s*[\-rwx]+\s+\d+\s+([\w\_\.\-]+)\s+([\w\_\.\-]+)\s+\d+/ ) {
+        system( "/bin/chown $1:$2 $ARGV[0]" );
+        system( "/bin/chmod 600 $ARGV[0]" );
+}

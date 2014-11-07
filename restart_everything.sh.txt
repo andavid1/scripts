@@ -1,0 +1,41 @@
+restart_everything.sh
+
+
+#!/bin/sh
+
+# /bin/cp -f /etc/mail/sendmail.cf /etc/mail/sendmail.cf.bak
+# /usr/bin/m4 /usr/lib/opcenter/sendmail/install/sendmail.mc > /etc/mail/sendmail.cf
+/sbin/service MailScanner stop
+/sbin/service spamassassin stop
+/sbin/service saslauthd stop
+/sbin/service sendmail stop
+/sbin/service proftpd stop
+/sbin/service xinetd stop
+/sbin/service webppliance stop
+/sbin/service postgresql stop
+/sbin/service named stop
+/sbin/service httpd stop
+/sbin/service mysqld stop
+
+/sbin/service sshd-rb stop
+/sbin/service tomcat4 stop
+
+/sbin/service sshd restart
+/sbin/service syslog restart
+/sbin/service crond restart
+/sbin/service wsdaemon restart
+
+/sbin/service virtualhosting stop
+/sbin/service virtualhosting start
+
+/sbin/service mysqld start
+/sbin/service httpd start
+/sbin/service named start
+/sbin/service postgresql start
+/sbin/service webppliance start
+/sbin/service xinetd start
+/sbin/service proftpd start
+/sbin/service sendmail start
+/sbin/service saslauthd start
+/sbin/service spamassassin start
+/sbin/service MailScanner start

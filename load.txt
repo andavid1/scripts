@@ -1,0 +1,7 @@
+LOAD=$(uptime|awk '{print $10}'|cut -d"." -f1)
+if [ $LOAD -ge 5 ]
+then
+/etc/init.d/spamassassin stop
+pkill -9 spamd
+/etc/init.d/spamassassin start
+fi

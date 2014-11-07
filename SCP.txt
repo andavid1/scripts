@@ -1,0 +1,91 @@
+<Jai> LpaCe73FHFyq
+<Jai> scp -r ://66.98.210.59/home/cpmove .
+<Arminder> scp -r user@ip:path .
+<Jai> thx
+<Arminder> To clarify a popular misconception, THX® is not a competing sound system to Dolby® sound; rather, it is a set of parameters for cinemas created by THX. Dolby and THX coexist in high-quality cinemas all over the world to bring you a sound experience that is exceptionally close to what the filmmaker intended. 
+<Arminder> useradd ezsmtest
+<Arminder> passwd ezsmtest
+<Arminder> TDOHLBXY1324
+<Arminder> scp -r ezsmtest@207.44.180.5/home/cpmove .
+<Arminder> infact do other ways
+<Arminder> move from ensim to cpanel
+<Arminder> create user in cpanel
+<Arminder> scp -r /home/cpmove user@ip:path
+<Jai> scp -r /home/cpmove ezsm@209.62.77.162 .    rihgt? 
+<Arminder> no . in the end
+<Arminder> its scp -r source destination
+<Arminder> scp -r /home/cpmove ezsm@209.62.77.162:
+<Arminder> and it will copy to home folder of ezsm user
+
+
+scp -r /home/cpmove user@ip:path
+
+scp -r /home/cpmove ezsm@209.62.77.162:
+scp -pr /home/backupuser/cpbackup/daily cpanel3backup@83.149.87.190:
+
+
+
+scp -r /home/virtual/redlineproduction.com/var/www/html/ root@66.98.210.59 .  This is wrong
+scp -r /home/virtual/redlineproduction.com/var/www/html/ root@66.98.210.59:/home/virtual/redlineproduction.com/var/www/html
+
+scp -r -p /backup/mindshapers.com.tar.gz root@67.15.104.79:
+
+scp -r -p /backup/* root@74.52.55.52:
+
+
+gzip: stdin: decompression OK, trailing garbage ignored
+tar: Child returned status 2
+tar: Error exit delayed from previous errors
+
+
+* 1 * * *  ls -1 /home/virtual/site7/fst/var/www/html/imodel/aaaimagestemp/000delete/*|xargs rm -f
+
+
+
+mysqldump --opt platinumcigars_com > db-wally.ipgod.net_platinumcigars.com_site_2007_June_06_29_56.sql 
+
+
+mysqladmin -u root password '1sheato' 
+
+mysqldump -uroot -p platinumcigars_com > 2007_June_06_29_56.sql
+
+
+scp -r /root/2007_June_06_29_56.sql ezsm@207.44.180.54:
+
+
+
+
+vhexport -s fish-onmarketing.com -U file:///backup/fish-onmarketing.com -z
+
+
+To export appliance, reseller, site, or user's data for backup, use the vhexport script. Syntax /usr/local/bin/vhexport -h|--help -a|--appliance-info -r|--reseller reseller1[,info][,site1,site2,...,site<n>] -s|--sites site1,site2,...,site<n> -u|--users site1,user1,user2,...,user<n> ... -u|--users user1@domain.com,user2@domain.net,... ... [-U|--URL <destination URL>] [-f|--url-info-file=<file>] [-t|--split-threshold <size>] [-z|--compressed] [-c|--crypt] [-A|--algo=<algorithm>] [-k|--key-from-fd=<fd>] Individual exports will be made for each reseller, site, and user specified. Note 
+that site exports include the necessary information to recreate users when 
+imported. When specifying a <destination URL>, the proper '.tar.gz' or '.tar' 
+ending will automatically be added to the end of the URL, based on whether 
+
+
+scp -r ftp://207.44.180.5 /209.62.77.162 right ? 
+scp-r ://209.62.77.162/home/cpmove .      Data was on 207 so fire the cmd from 209
+
+
+vhexport -s mcelfishlaw.com -U file:///backup/mcelfishlaw.com -z
+
+
+scp 74.52.55.52:/home/cpmove-desktopf.tar.gz .
+
+sc
+
+
+For doing an SCP:
+Create and EZSM user with password on remote server where you wanted to migrate account. Use SCP command 
+scp -r -p /backup/dump.a* ezsm@74.52.55.22: (Plesk).
+
+scp -r -p /backuppath ezsm@remoteIP:   
+
+
+[root@host admin]# scp -r -p /home/admin/cpmove-radiotie.tar.gz ezsm@213.218.137.40:/home
+ssh: connect to host 213.218.137.40 port 22: Connection timed out
+lost connection
+
+
+scp -r -i /data/h4backup/backups/ns3.worldhost.com.au/all.tar.gz ezsm@203.55.18.115:

@@ -1,0 +1,79 @@
+checkjails.pl
+
+#!/usr/bin/perl
+
+$ssh_enabled_count = 0;
+$ssh_not_jailed_count = 0;
+$telnet_enabled_count = 0;
+$telnet_not_jailed_count = 0;
+$apache_enabled_count = 0;
+$apache_not_jailed_count = 0;
+$tomcat_enabled_count = 0;
+$miva_enabled_count = 0;
+$total = 0;
+
+foreach $i (`/bin/ls -lA /home/virtual`) {
+        next if( $i =~ /\s+site\d+/ || $i =~ /\s+admin\d+\s+/ );
+
+        if( $i =~ /([\w\-\.]+)\s*\-\>\s*\/home\/virtual\/site(\d+)/ ) {
+                $sites{$2} = $1;
+        }
+}
+
+foreach $i (`/bin/ls /home/virtual/`) {
+        next unless( $i =~ /^site(\d+)/ );
+        $site_num = $1;
+        $site_dir = "/home/virtual/site${site_num}/info/current";
+
+        %enabled = ('ssh' => -1, 'telnet' => -1, 'apache' => -1, 'tomcat4' => -1, 'mivamerchant' => -1);
+        %jailed = ('ssh' => -1, 'telnet' => -1, 'apache' => -1, 'tomcat4' => -1, 'mivamerchant' => -1);
+
+        foreach $j (keys %enabled) {
+
+                if( -T "$site_dir/$j" ) {
+                        foreach $k (`/bin/cat $site_dir/$j`) {
+
+                                if( $k =~ /enabled\s*\=\s*(\d+)/ ) {
+                                        $enabled{$j} = $1;
+                                }
+
+                                if( $k =~ /jail\s*\=\s*(\d+)/ ) {
+                                        $jailed{$j} = $1;
+                                }
+                        }
+
+                } else {
+                        print "*** Error: Cannot read \"$site_dir/$j\".\n";
+                }
+        }
+
+        unless( $jailed{'apache'} ) {
+                print "+ $site_num " . $sites{$site_num} . "\n";
+        }
+
+        print "$site_num :\tssh= " . $enabled{'ssh'} . " : " . $jailed{'ssh'} .
+                "\ttelnet= " . $enabled{'telnet'} . " : " . $jailed{'telnet'} .
+                "\tapache= " . $enabled{'apache'} . " : " . $jailed{'apache'} .
+                "\ttomcat= " . $enabled{'tomcat4'} . "\tmiva= " . $enabled{'mivamerchant'} . "\n";
+
+        $ssh_enabled_count++ if( $enabled{'ssh'} == 1 );
+        $ssh_not_jailed_count++ if( $jailed{'ssh'} == 0 );
+        $telnet_enabled_count++ if( $enabled{'telnet'} == 1 );
+        $telnet_not_jailed_count++ if( $jailed{'telnet'} == 0 );
+        $apache_enabled_count++ if( $enabled{'apache'} == 1 );
+        $apache_not_jailed_count++ if( $jailed{'apache'} == 0 );
+        $tomcat_enabled_count++ if( $enabled{'tomcat4'} == 1 );
+        $miva_enabled_count++ if( $enabled{'mivamerchant'} == 1 );
+        $total++;
+}
+
+print "\n\n" . "-"x79 . "\nTOTALS:\n\n";
+print "Total Sites: $total\n";
+print "SSH Enabled: $ssh_enabled_count\n";
+print "SSH Not Jailed: $ssh_not_jailed_count\n";
+print "Telnet Enabled: $telnet_enabled_count\n";
+print "Telnet Not Jailed: $telnet_not_jailed_count\n";
+print "Apache Enabled: $apache_enabled_count\n";
+print "Apache Not Jailed: $apache_not_jailed_count\n";
+print "Tomcat: $tomcat_enabled_count\n";
+print "Miva: $miva_enabled_count\n";

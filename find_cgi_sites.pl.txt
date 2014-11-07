@@ -1,0 +1,30 @@
+find_cgi_sites.pl
+
+#!/usr/bin/perl
+
+sub tabSpace {
+        my( $str, $tabs ) = @_;
+
+        $space = ($tabs * 8) - length( $str );
+        return "$str" . " "x$space;
+}
+
+foreach $i (`/usr/bin/find /home/virtual/site*/fst/var/www/cgi-bin/ -maxdepth 1 | /bin/grep -v "awstats"`) {
+        if( $i =~ /^\s*\/home\/virtual\/site(\d+)/ ) {
+                $sites{$1}++;
+        }
+}
+
+foreach $i (`/bin/ls -lA /home/virtual`) {
+        next if( $i =~ /\s+site\d+/ || $i =~ /\s+admin\d+\s+/ );
+
+        if( $i =~ /([\w\-\.]+)\s*\-\>\s*\/home\/virtual\/site(\d+)/ ) {
+                $site_names{$2} = $1;
+        }
+}
+
+foreach $i (keys %sites) {
+        next if( $sites{$i} == 1 );
+        print( tabSpace( $site_names{$i}, 5 ) . tabSpace( "($i)", 1 ) . tabSpace( "x " . $sites{$i}, 1 ) . "\n" );
+}
+

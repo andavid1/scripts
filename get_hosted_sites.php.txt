@@ -1,0 +1,25 @@
+get_hosted_sites.php
+
+
+#!/usr/bin/php
+<?php
+/*
+ * Connect to ensim's pgsql db and output csv of domains,email,admin_user
+ * for all sites hosted on the server.
+ *
+ * used for building a database of which-server-hosts-what
+ *
+ */
+
+$db = pg_connect("dbname=appldb");
+
+$res = pg_query('SELECT domain,email,admin_user FROM siteinfo');
+
+while ($row = pg_fetch_array($res, null, PGSQL_ASSOC)) {
+  $domain = $row['domain'];
+  $email = $row['email'];
+  $admin_user = $row['admin_user'];
+  echo "$domain,$email,$admin_user\n";
+}
+
+?>

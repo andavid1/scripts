@@ -1,0 +1,27 @@
+portshow.pl
+
+#!/usr/bin/perl
+
+$date = `date`;
+print $date;
+
+foreach $i (`netstat -vatn`) {
+        chomp( $i );
+
+        $i =~ /^\w+\s+\d+\s+\d+\s+[\.\d]+\:(\d+)\s+[\.\d]+\:(\d+)/;
+        $inport = $1;
+        $outport = $2;
+
+        $inports{$inport}++;
+        $outports{$outport}++;
+}
+
+print "Incoming:\n";
+foreach $i (keys %inports) {
+        print "$i : $inports{$i}\n";
+}
+
+print "Outgoing:\n";
+foreach $i (keys %outports) {
+        print "$i : $outports{$i}\n";
+}

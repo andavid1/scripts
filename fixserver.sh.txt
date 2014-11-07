@@ -1,0 +1,11 @@
+fixserver.sh
+
+#!/bin/sh
+
+# /root/bin/fixsites.pl &&
+# /root/bin/fpfix.pl
+
+/sbin/quotaoff -av 2>&1 &&
+/sbin/quotacheck -ugamnv 2>&1
+/sbin/quotaon -av 2>&1
+/usr/sbin/repquota -ugav 2>&1

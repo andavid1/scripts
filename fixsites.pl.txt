@@ -1,0 +1,14 @@
+fixsites.pl
+
+#!/usr/bin/perl
+
+foreach $i (`ls /home/virtual`) {
+        if( $i =~ /site(\d+)/ ) {
+                $site = $1;
+
+                print( "Site: $site\n" );
+                system( "rm -f /home/virtual/site$site/info/pure" );
+                system( "EditVirtDomain site$site" );
+                sleep( 10 );
+        }
+}

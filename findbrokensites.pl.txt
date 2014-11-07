@@ -1,0 +1,83 @@
+findbrokensites.pl
+
+#!/usr/bin/perl
+
+use DBI;
+
+$biggest = 0;
+$dbname = "appldb";
+
+$dbh = DBI->connect( "dbi:Pg:dbname=$dbname", "", "");
+
+sub run_cmd {
+        my ($cmd) = @_;
+
+        print "Running: $cmd\n";
+
+        if( $n = system( $cmd )) {
+                logError( "\"$cmd\" returned an error ($n)" );
+        }
+
+        return $n;
+}
+
+# This subroutine handles MySQL query statements
+sub do_sql {
+        my( $dbh, $query ) = @_;
+
+        my $sth;
+
+        unless( $sth = $dbh->prepare( $query ) ) {
+                print( "SQL Query \"$query\" produced an error.\n" .
+                        "SQL Error Message: \"" . $dbh->errstr . "\"\n" );
+                exit( 1 );
+        }
+
+        unless( $sth->execute ) {
+                print( "SQL Query \"$query\" failed to execute.\n" .
+                        "SQL Error Message: \"" . $dbh->errstr . "\"\n" );
+                exit( 1 );
+        }
+
+        $rv = $sth->rows;
+        # print "Query: \"$query\" effected $rv rows.\n";
+
+        return $rv;
+}
+
+
+foreach $i (0 ... 1000) {
+        $admins{$i} = 0;
+        $domains{$i} = "{Unknown}";
+        $sites{$i} = 0;
+
+        $dbs{$i} = do_sql( $dbh, "select * from siteinfo where site_id = $i" );
+}
+
+foreach $i (`ls -laF /home/virtual/`) {
+        chomp( $i );
+
+        if( $i =~ /admin(\d+) \-\> \/home\/virtual\/site(\d+)\/fst\// ) {
+                $admins{$1} = 1;
+                next;
+        }
+
+        if( $i =~ /(\S+) \-\> \/home\/virtual\/site(\d+)\/fst\// ) {
+                $domains{$2} = $1;
+                next;
+        }
+
+        if( $i =~ /site(\d+)/ ) {
+                $sites{$1} = 1;
+                if( $biggest < $1 ) {
+                        $biggest = $1;
+                }
+        }
+}
+
+foreach $i (1 ... $biggest) {
+        next if( $domains{$i} eq "{Unknown}" and $sites{$i} == 0 and $admins{$i} == 0 and $dbs{$i} == 0 );
+        next if( !($domains{$i} eq "{Unknown}") and $sites{$i} == 1 and $admins{$i} == 1 and $dbs{$i} == 1 );
+
+        print "$i: $domains{$i} $sites{$i} $admins{$i} $dbs{$i}\n";
+}

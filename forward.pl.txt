@@ -1,0 +1,62 @@
+forward.pl
+
+#!/usr/bin/perl
+
+$title = $ARGV[0];
+$addr = $ARGV[1];
+$domain = $ARGV[2];
+$phpstyle = $ARGV[3];
+
+unless( $title ) {
+        print "*** ERROR: Forwarding title not specified.\n";
+}
+
+unless( $addr ) {
+        print "*** ERROR: Forwarding address not specified.\n";
+}
+
+unless( $domain ) {
+        print "*** ERROR: Forwarding domain not specified.\n";
+}
+
+exit( 1 ) unless( $title and $addr and $domain );
+
+if( system( "/bin/mv -f /home/virtual/$domain/var/www/html/index.html /home/virtual/$domain/var/www/html/index.html.orig" )) {
+        print "*** ERROR: Cannot move /home/virtual/$domain/var/www/html/index.html\n";
+}
+
+if( $phpstyle ) {
+        $filename = "index.php";
+} else {
+        $filename = "index.html";
+}
+
+unless( open( INDEXHTML, ">/home/virtual/$domain/var/www/html/$filename" )) {
+        print "*** ERROR: Cannot write to /home/virtual/$domain/var/www/html/$filename\n";
+        exit( 1 );
+}
+
+if( $phpstyle ) {
+        print INDEXHTML <<EOF;
+<?php
+        header( "Location: $addr" );
+?>
+EOF
+} else {
+        print INDEXHTML <<EOF;
+<html>
+<head>
+<title>$title</title>
+</head>
+<frameset rows="0,*">
+<frame name="top" scrolling="no" noresize target="main">
+<frame name="main" src="$addr">
+</frameset>
+</html>
+EOF
+}
+
+close( INDEXHTML );
+
+print "\"$domain\" has been forwarded to \"$addr\".\n";
+

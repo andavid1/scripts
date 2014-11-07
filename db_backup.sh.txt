@@ -1,0 +1,7 @@
+db_backup.sh
+
+#!/bin/sh
+
+/usr/bin/php -q -f /root/bin/fix_mysql.php 2>&1 > /var/log/fix_mysql.log
+/root/bin/backup.pl -d 2>&1 > /var/log/backup_db.log
+/root/bin/backup.pl -e 2>&1 > /var/log/backup_ensim.log

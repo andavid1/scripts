@@ -1,0 +1,46 @@
+ printDNS.pl
+
+
+#!/usr/bin/perl
+
+if( $ARGV[0] !~ /^[\w\.\-\_]+$/ ) {
+        print "Error: '$ARGV[0]' does not appear to be a valid domain name.\n";
+} else {
+        $domain = $ARGV[0];
+}
+
+$ns_count = 1;
+
+if( -e "/var/named/db.$domain" ) {
+        foreach $i (`cat /var/named/db.$domain`) {
+
+                if( $i =~ /NS\s+([\w\.\-\_]+)/ ) {
+                        $ns_records{$ns_count} = $1;
+                        $ns_count++;
+                }
+
+                if( $i =~ /A\s+([\d\.]+)/ ) {
+                        $a_records{'@'} = $1;
+                }
+
+                if( $i =~ /([\w\.\-\_]+)\s+A\s+([\d\.]+)/ ) {
+                        $a_records{$1} = $2;
+                }
+
+                if( $i =~ /MX\s+(\d+)\s+([\w\.\-\_]+)/ ) {
+                        $mx_records{$2} = $1;
+                }
+        }
+}
+
+foreach $i (keys %a_records) {
+        print "$i:A:" . $a_records{$i} . "\n";
+}
+
+foreach $i (keys %mx_records) {
+        print "$i:MX:" . $mx_records{$i} . "\n";
+}
+
+foreach $i (keys %ns_records) {
+        print "$i:NS:" . $ns_records{$i} . "\n";
+}

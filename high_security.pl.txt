@@ -1,0 +1,104 @@
+high_security.pl
+
+#!/usr/bin/perl
+
+$debug_mode = 0;
+
+sub run_cmd {
+        my ($cmd) = @_;
+        my $now, @date_array, $result;
+
+        @date_array = localtime();
+        $date_array[0] = '0' . $date_array[0] if( length( $date_array[0] ) == 1 );
+        $date_array[1] = '0' . $date_array[1] if( length( $date_array[1] ) == 1 );
+        $date_array[2] = '0' . $date_array[2] if( length( $date_array[2] ) == 1 );
+
+        print( "\t[" . $date_array[2] . ":" . $date_array[1] . ":" . $date_array[0] . "] -> " . $cmd . "\n" );
+
+        if( $debug_mode ) {
+                return 0;
+        }
+
+        if( $result = system( "$cmd 2>&1" )) {
+                print "*** Error: '$cmd' returned ($result)\n";
+                return $result;
+        }
+
+        return 0;
+}
+
+sub fix_virtuals {
+        my( $site_num ) = @_;
+        my %done = ();
+
+        print( '/usr/bin/find /home/virtual/site' . $site_num . '/fst/var/www/html -name "*.php" -print0 | /usr/bin/xargs -0 /bin/grep -e "\/home\/virtual\/"' . "\n" ) if( $debug_mode );
+
+        foreach $i (`/usr/bin/find /home/virtual/site$site_num/fst/var/www/html -name "*.php" -print0 | /usr/bin/xargs -0 /bin/grep -e "\/home\/virtual\/"`) {
+                print "\t<- $i" if( $debug_mode );
+                chomp( $i );
+
+                $i =~ /^\s*([\w\-\.\/]+)\:(.+)$/;
+                $filename = $1;
+                $strn = $2;
+
+                unless( -f $filename ) {
+                        print( "*** ERROR: Cannot find '$filename'\n" );
+                        next;
+                }
+
+                if( $done{$filename} ) {
+                        next;
+                }
+
+                unless( $strn ) {
+                        print( "*** ERROR: Cannot determine string to change: '$strn'\n" );
+                        next;
+                }
+
+                $backup_name = $filename;
+                $backup_name =~ s/\//\_/g;
+                $backup_name =~ s/^\_//;
+
+                print( "Fix Virtuals: '$filename'\tString: '$strn'\n" );
+
+                if( $strn =~ /^\s*\#/ ) {
+                        print( "* Skipping.\n" );
+                        next;
+                }
+
+                run_cmd( "/bin/cp -a $filename /home/bak/$backup_name" );
+                run_cmd( "/usr/bin/perl -pi -e 's/\\/home\\/virtual\\/site\\d+\\/fst//g' $filename" );
+
+                $done{$filename} = 1;
+        }
+}
+
+sub find_skips {
+        %skips = ();
+
+        foreach $i (`/bin/cat /root/php_sites.lst /root/cgi_sites.lst`) {
+                if( $i =~ /^\s*([\w\-\.]+)\s+/ ) {
+                        $skips{$1} = 1;
+                }
+        }
+}
+
+&find_skips;
+
+foreach $i (`/bin/cat jails.log`) {
+        if( $i =~ /^\+\s*(\S+)\s+(\S+)\s*$/ ) {
+                $site_num = $1;
+                $site_name = $2;
+
+                next if( $skips{$site_name} );
+
+                print( "\n" . "-"x79 . "\n" );
+                print( "Upgrading: #$site_num '$site_name'\n" );
+
+#               fix_virtuals( $site_num );
+
+                run_cmd( "/usr/local/bin/EditVirtDomain -c apache,jail=1 site$site_num" );
+#               run_cmd( "/usr/local/bin/DisableVirtDomain $site_name" );
+#               run_cmd( "/usr/local/bin/EnableVirtDomain $site_name" );
+        }
+}

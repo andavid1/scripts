@@ -1,0 +1,59 @@
+checkban.pl
+
+
+#!/usr/bin/perl
+
+$service = "";
+$remove = 0;
+$target_ip = 0;
+$IPTABLES = "/sbin/iptables";
+
+sub usage {
+        print( "\nUsage: '$0 [-r] [ip-addr]'\n" );
+        print( "\t-r - Remove ban.\n\n" );
+}
+
+foreach $i (@ARGV) {
+        chomp( $i );
+
+        if( $i =~ /^\-r$/ ) {
+                $remove = 1;
+
+        } elsif( $i =~ /^(\d+\.\d+\.\d+\.\d+)$/ ) {
+                $target_ip = $1;
+
+        } else {
+                print( "Error: Invalid parameter: '$i'\n" );
+                &usage;
+                exit( 1 );
+        }
+}
+
+if( $remove && !$target_ip ) {
+        print( "Error: Remove paarameter provided without ip address.\n" );
+        &usage;
+        exit( 1 );
+}
+
+foreach $i (`$IPTABLES -L -n`) {
+        chomp( $i );
+
+        $ban = "";
+
+        if( $i =~ /Chain fail2ban\-(\w+)\s+/ ) {
+                $service = $1;
+        }
+
+        if( $i =~ /DROP\s+all\s+\-\-\s+(\d+\.\d+\.\d+\.\d+)/ && $service ) {
+                $ban = $1;
+
+                if( !$target_ip || $target_ip eq $ban ) {
+                        print( "$service\t\t$ban\n" );
+
+                        if( $remove ) {
+                                print( "Removing ban for '$ban' on '$service'.\n" );
+                                system( "$IPTABLES -D fail2ban-$service -s $ban -j DROP\n" );
+                        }
+                }
+        }
+}

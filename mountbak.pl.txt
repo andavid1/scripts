@@ -1,0 +1,76 @@
+mountbak.pl
+
+
+#!/usr/bin/perl
+
+$MOUNT_DIR = "/mnt/backup";
+$SERVER_NAME = "NS3";
+$USERNAME = "new_backup";
+$PASSWORD = 'G).HdsOf&5zp_dZ';
+$BACKUP_IP = "192.168.1.5";
+# $BACKUP_IP = "192.168.1.6";
+
+sub run_cmd {
+        my ($cmd) = @_;
+        my $now, @date_array, $result;
+
+        @date_array = localtime();
+        $date_array[0] = '0' . $date_array[0] if( length( $date_array[0] ) == 1 );
+        $date_array[1] = '0' . $date_array[1] if( length( $date_array[1] ) == 1 );
+        $date_array[2] = '0' . $date_array[2] if( length( $date_array[2] ) == 1 );
+
+        print "\t[" . $date_array[2] . ":" . $date_array[1] . ":" . $date_array[0] . "] -> " . $cmd . "\n";
+
+        if( $debug_mode ) {
+                return 0;
+        }
+
+        if( $result = system( "$cmd 2>&1" ) && $result != 512 ) {
+                print "*** Error: '$cmd' returned ($result)\n";
+                return $result;
+        }
+
+        return 0;
+}
+
+sub check_mount {
+        my ($mount_path) = @_;
+        my $mounted = 0;
+
+        foreach $i (`/bin/df`) {
+                $mounted = $1 if( $i =~ /(\d+)\%\s+$mount_path/ );
+        }
+
+        return $mounted;
+}
+
+$percent_used = &check_mount( $MOUNT_DIR );
+
+if( $percent_used ) {
+        if( $percent_used > 98 ) {
+                print( "WARNING: $MOUNT_DIR is ($percent_used) full!\n" );
+                exit( 2 );
+
+        } else {
+                print( "$MOUNT_DIR already mounted.\n" );
+                exit( 0 );
+        }
+}
+
+&run_cmd( "/bin/mount -t smbfs -o username='$USERNAME',password='$PASSWORD' '//$BACKUP_IP/$SERVER_NAME' '$MOUNT_DIR'" );
+$percent_used = &check_mount( $MOUNT_DIR );
+
+if( !$percent_used ) {
+        print( "$MOUNT_DIR was not mounted.\n" );
+        exit( 1 );
+
+} elsif( $percent_used > 98 ) {
+        print( "WARNING: $MOUNT_DIR is ($percent_used) full!\n" );
+        exit( 2 );
+
+} else {
+        print( "$MOUNT_DIR ($percent_used%) has been mounted.\n" );
+        exit( 0 );
+}
+
+exit( 1 );

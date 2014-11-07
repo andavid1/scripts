@@ -1,0 +1,37 @@
+killsitedb.pl
+
+
+#!/usr/bin/perl
+
+$X = $ARGV[0];
+
+open( TMP, ">/tmp/pgsql_tmp_command" ) or die "Cannot open /tmp/pgsql_tmp_command\n";
+
+print TMP <<EOF;
+delete from users where site_id = $X;
+delete from apache where site_id = $X;
+delete from ssh where site_id = $X;
+delete from telnet where site_id = $X;
+delete from ipinfo where site_id = $X;
+delete from diskquota where site_id = $X;
+delete from bandwidth_log where site_id = $X;
+delete from bandwidth_spans where site_id = $X;
+delete from bandwidth_services where site_id = $X;
+delete from bandwidth where site_id = $X;
+delete from free_uids where site_id = $X;
+delete from ipinfo_ipaddrs where site_id = $X;
+delete from ipinfo_nbaddrs where site_id = $X;
+delete from reseller where site_id = $X;
+delete from reseller_bandwidth where site_id = $X;
+delete from reseller_diskquota where site_id = $X;
+delete from reseller_info where site_id = $X;
+delete from reseller_ipinfo where site_id = $X;
+delete from reseller_users where site_id = $X;
+delete from "gallery-1.3.4-1.0" where site_id = $X;
+delete from siteinfo where site_id = $X;
+EOF
+
+close( TMP );
+
+system( "/usr/bin/psql appldb -f /tmp/pgsql_tmp_command" );
+

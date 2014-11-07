@@ -1,0 +1,34 @@
+killqueue.pl
+
+#!/usr/bin/perl
+
+foreach $i (`/bin/ls -d /home/virtual/site*`) {
+        chomp( $i);
+
+        $size = `/usr/bin/du -h $i/fst/var/spool/mqueue.site`;
+        chomp( $size );
+
+        print "$i : $size\n";
+
+#       foreach $j (`/bin/ls $i/fst/var/spool/mqueue.site`) {
+#               chomp( $j );
+#               system "rm $i/fst/var/spool/mqueue.site/$j\n";
+#       }
+}
+
+[root@ns3 bin]# cat killqueue.pl
+#!/usr/bin/perl
+
+foreach $i (`/bin/ls -d /home/virtual/site*`) {
+        chomp( $i);
+
+        $size = `/usr/bin/du -h $i/fst/var/spool/mqueue.site`;
+        chomp( $size );
+
+        print "$i : $size\n";
+
+#       foreach $j (`/bin/ls $i/fst/var/spool/mqueue.site`) {
+#               chomp( $j );
+#               system "rm $i/fst/var/spool/mqueue.site/$j\n";
+#       }
+}

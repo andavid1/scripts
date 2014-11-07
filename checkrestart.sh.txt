@@ -1,0 +1,11 @@
+checkrestart.sh
+
+
+#!/bin/bash
+
+if [ -f /etc/restart-named ]; then
+        /sbin/service named restart
+        /bin/rm -f /etc/restart-named
+fi
+
+# /bin/date > /root/last-restart

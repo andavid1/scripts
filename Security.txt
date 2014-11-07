@@ -1,0 +1,20 @@
+If server is under attack. 
+
+grep ‘libwww-perl’ /var/log/httpd/access.log
+
+
+http://www.linux.com/articles/48138
+http://en.wikipedia.org/wiki/Zombie_computer
+http://www.linux.com/articles/113875
+http://sourceforge.net/projects/daemonshield/
+http://www.cyberciti.biz/tips/how-do-i-drop-or-block-attackers-ip-with-null-routes.html
+http://www.cyberciti.biz/tips/howto-block-ipaddress-with-iptables-firewall.html
+http://www.cyberciti.biz/tips/linux-iptables-10-how-to-block-common-attack.html
+http://www.cyberciti.biz/tips/linux-iptables-4-block-all-incoming-traffic-but-allow-ssh.html
+http://www.cyberciti.biz/tips/linux-unix-wtmp-utmp-login-records-file.html
+http://www.cyberciti.biz/tips/linux-how-do-i-display-failed-login-attempt.html
+http://www.cyberciti.biz/tips/linux-how-to-find-all-failed-login-attempts.html
+http://www.cyberciti.biz/tips/linux-check-passwords-against-a-dictionary-attack.html
+http://www.cyberciti.biz/tips/linux-prevent-normal-users-from-logging-into-system.html
+http://www.cyberciti.biz/tips/restrict-the-use-of-su-command.html
+http://www.cyberciti.biz/tips/find-alert-warning-error-messages-in-logfile.html

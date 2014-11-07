@@ -1,0 +1,39 @@
+cmpsysctl.pl
+
+#!/usr/bin/perl
+
+foreach $i (`/bin/cat /etc/sysctl.conf`) {
+        $i =~ s/#\.*$//g;
+        next if( $i =~ /^\s*$/ );
+
+        next unless( $i =~ /^(.+)\s*\=\s*(.+)$/ );
+        $current{$1} = $2;
+}
+
+foreach $i (`/bin/cat /root/sysctl.new`) {
+        $i =~ s/#\.*$//g;
+        next if( $i =~ /^\s*$/ );
+
+        next unless( $i =~ /^(.+)\s*\=\s*(.+)$/ );
+        $new{$1} = $2;
+}
+
+foreach $i (keys %new) {
+
+        unless( $new{$i} eq $current{$i} ) {
+                print "--- $i ---\n";
+                print "Current: " . $current{$i} . "\n";
+                print "New: " . $new{$i} . "\n\n";
+        }
+}
+
+print "--- Part Deux ---\n\n";
+
+foreach $i (keys %current) {
+
+        unless( $new{$i} eq $current{$i} ) {
+                print "--- $i ---\n";
+                print "Current: " . $current{$i} . "\n";
+                print "New: " . $new{$i} . "\n\n";
+        }
+}

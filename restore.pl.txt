@@ -1,0 +1,585 @@
+restore.pl
+
+
+
+#!/usr/bin/perl
+
+# Constants
+$TMP_DIR = "/home/tmp";
+$SITE_DIR = "/home/virtual";
+$BACKUP_DIR = "/mnt/backup/ns3";
+$mysql_root_password = "sCnnj03m";
+
+$server_name = `hostname`;
+chomp( $server_name );
+
+################################################################################
+# Subroutines
+################################################################################
+
+sub run_cmd {
+        my ($cmd) = @_;
+
+        $date = `/bin/date`;
+        chomp( $date );
+
+        if( $date =~ /(\d+\:\d+\:\d+)/ ) {
+                $date = $1;
+        }
+
+        print "\t[$date] -> $cmd\n";
+
+        if( $debug_mode ) {
+                return 0;
+        }
+
+        if( $result = system( "$cmd 2>&1" )) {
+                print "*** ERROR: \"$cmd\" returned ($result)\n";
+ return $result;
+        }
+
+        return 0;
+}
+
+sub run_cmd_chroot {
+        my ($site, $cmd) = @_;
+
+        $date = `/bin/date`;
+        chomp( $date );
+
+        if( $date =~ /(\d+\:\d+\:\d+)/ ) {
+                $date = $1;
+        }
+
+        print "\t[$date] [CHROOT: $site] -> $cmd\n";
+
+        if( $debug_mode ) {
+                return 0;
+        }
+
+        if( $result = system( "/usr/sbin/chroot /home/virtual/site${site}/fst/ $cmd 2>&1" )) {
+                print "*** ERROR: \"$cmd\" returned ($result)\n";
+                return $result;
+        }
+
+        return 0;
+}
+
+sub chmod_dir {
+        my ($dir, $user, $group) = @_;
+ if( !-d $dir ) {
+                print "** WARNING: Cannot locate directory '$dir'.\n";
+                return 1;
+        }
+
+        if( $user && $group ) {
+                run_cmd( "/bin/chown -R $user $dir" );
+                run_cmd( "/bin/chgrp -R $group $dir" );
+        } elsif( $user ) {
+                run_cmd( "/bin/chown -R $user $dir" );
+        } elsif( $group ) {
+                run_cmd( "/bin/chgrp -R $group $dir" );
+        } else {
+                print "*** ERROR: User and group both not specified for '$dir'.\n";
+                return 1;
+        }
+
+        return 0;
+}
+
+sub chmod_file {
+        my ($file, $user, $group) = @_;
+
+        if( $user && $group ) {
+                run_cmd( "/bin/chown $user $file" );
+                run_cmd( "/bin/chgrp $group $file" );
+        } elsif( $user ) {
+                run_cmd( "/bin/chown $user $file" );
+        } elsif( $group ) {
+                run_cmd( "/bin/chgrp $group $file" );
+        } else {
+                print "*** ERROR: User and group both not specified for '$file'.\n";
+                return 1;
+ }
+
+        return 0;
+}
+
+sub get_key {
+        my ($hash_ref, $value) = @_;
+        my $i;
+
+        foreach $i (keys %{$hash_ref}) {
+                if( $hash_ref->{ $i } eq $value ) {
+                        return $i;
+                }
+        }
+
+        return 0;
+}
+
+sub readSiteInfo {
+        my ($site_num) = @_;
+        my $i;
+
+        %site_data = ();
+
+        foreach $i (`/bin/ls ${TMP_DIR}/site${site_num}/info/current/`) {
+                chomp( $i );
+
+                open( INFOFILE, "<${TMP_DIR}/site${site_num}/info/current/$i" ) or
+                        die "***ERROR: Cannot open '${TMP_DIR}/site${site_num}/info/current/$i'\n";
+
+                while( <INFOFILE> ) {
+                        next if( /\[DEFAULT\]/ || /^\s*$/ || /version/ || /fstgeneration/ );
+ if( /^\s*(\w+)\s*\=\s*(.+)$/ ) {
+                                $site_data{$i}{$1} = $2;
+                        } else {
+                                print "** WARNING: Not recognized: in '${TMP_DIR}/site${site_num}/info/current/$i' $_\n";
+                        }
+                }
+
+                close( INFOFILE );
+        }
+}
+
+sub AddVirtDomain {
+        my ($domain) = @_;
+        my $commandStr, $i, $j, $tmp;
+
+        print "-"x79 . "\n";
+        print "Creating site: $domain\n";
+
+        $site_data{'ssh'}{'jail'} = 1;
+        $site_data{'telnet'}{'jail'} = 1;
+        $site_data{'telnet'}{'enabled'} = 0;
+        # $site_data{'apache'}{'jail'} = 1;
+        $site_data{'tomcat4'}{'enabled'} = 0;
+
+        $commandStr = "/usr/local/bin/AddVirtDomain -c ipinfo,namebased=1";
+
+        foreach $i (keys %site_data) {
+                next if( $i eq "ipinfo" );
+
+                $commandStr .= " -c $i";
+
+                if( $i eq "siteinfo" ) {
+                        $commandStr .= ",tpasswd=temp";
+}
+
+                if( $i eq "reseller" ) {
+                        if( $old_reseller_nums{$site_data{$i}{'reseller_id'}} ) {
+                                $commandStr .= ",username='" . $old_reseller_nums{$site_data{$i}{'reseller_id'}} . "'";
+                        } else {
+                                $commandStr .= ",reseller_id=0";
+                        }
+                        next;
+                }
+
+                foreach $j (keys %{$site_data{$i}}) {
+                        next if( $i eq "siteinfo" && $j eq "admin" );
+
+                        if( $j eq "aliases" ) {
+                                $tmp = $site_data{$i}{$j};
+                                $tmp =~ s/\[/\\\[/g;
+                                $tmp =~ s/\]/\\\]/g;
+                                $tmp =~ s/\s//g;
+
+                                next if( $tmp eq "\\[\\]" );
+
+                                $commandStr .= ",$j=" . $tmp;
+                                next;
+                        }
+
+                        $commandStr .= ",$j='" . $site_data{$i}{$j} . "'";
+                }
+        }
+
+        if( run_cmd( $commandStr )) {
+                $site_failed{$domain} = 1;
+}
+}
+
+sub getResellerInfo {
+        my $i, $id;
+
+        foreach $i (`/bin/grep -e "INSERT INTO reseller" ${BACKUP_DIR}/appldb.inserts.sql`) {
+
+                if( $i =~ /reseller_info VALUES \((\d+)\, \'(\w+)\'\, \'([^\']+)\'\, \'([^\']+)\'\, \'([^\']+)\'\, (\d)\)/ ) {
+                        $id = $1;
+                        $reseller_data{$id}{'reseller'}{'username'} = $2;
+                        $reseller_data{$id}{'reseller'}{'email'} = $3;
+                        $reseller_data{$id}{'reseller'}{'cpasswd'} = $4;
+                        $reseller_data{$id}{'reseller'}{'fullname'} = $5;
+                        $reseller_data{$id}{'reseller'}{'enabled'} = $6;
+
+                        $old_reseller_nums{$id} = $2;
+
+                        next;
+                }
+
+                if( $i =~ /reseller_diskquota VALUES \((\d+)\, (\d+)\, \'([^\']+)\'\, \d+\)/ ) {
+                        $id = $1;
+                        $reseller_data{$id}{'diskquota'}{'quota'} = $2;
+                        $reseller_data{$id}{'diskquota'}{'units'} = $3;
+                        next;
+                }
+
+                if( $i =~ /reseller_users VALUES \((\d+)\, (\d+)\, \d+\)/ ) {
+                        $id = $1;
+                        $reseller_data{$id}{'users'}{'maxusers'} = $2;
+                        next;
+                }
+  }
+}
+
+sub AddResellers {
+        my $i, $j, $k, $resellerStr;
+
+        foreach $i (sort {$a <=> $b} keys %reseller_data) {
+                next if( $i == 0 );
+
+                if( $resellers_done{$reseller_data{$i}{'reseller'}{'username'}} ) {
+                        print "* NOTE: Already done reseller: " . $reseller_data{$i}{'reseller'}{'username'} . "\n";
+                        next;
+                }
+
+                $resellerStr = "/usr/local/bin/AddReseller -c apache,jail=0 -c ssh,jail=1 -c telnet,jail=1 ";
+
+                print "-"x79 . "\n";
+                print "Creating Reseller: $i\n";
+
+                foreach $j (sort keys %{$reseller_data{$i}}) {
+                        $resellerStr .= " -c $j";
+ foreach $k (keys %{$reseller_data{$i}{$j}}) {
+                                $resellerStr .= ",$k='" . $reseller_data{$i}{$j}{$k} . "'";
+                        }
+                }
+
+                if( run_cmd( $resellerStr ) ) {
+                        $reseller_failed{$reseller_data{$i}{'reseller'}{'username'}} = 1;
+                }
+        }
+}
+
+sub fix_dns {
+        foreach $i (`/bin/ls /var/named/db*`) {
+                next unless( $i =~ /^\/var\/named\/db\.([\w\-\.]+)/ );
+                $domain = $1;
+
+                if( system( "/bin/grep -q \"zone.$domain\" /etc/bind/bind.conf.wp" )) {
+                        print "* Note: Adding $domain to /etc/bind/bind.conf.wp\n";
+                        system( "/bin/echo 'include \"/etc/bind/zone.$domain\";' >> /etc/bind/bind.conf.wp" );
+                }
+
+                if( !( -e "/etc/bind/zone.$domain" )) {
+                        print "* Note: Creating zonefile for $domain\n";
+
+                        open( ZONEFILE, ">/etc/bind/zone.$domain" ) or die "Cannot write to /etc/bind/zone.$domain\n";
+
+                        print ZONEFILE <<EOF;
+zone "$domain" IN {
+        type master;
+        file "/var/named/db.$domain";
+        allow-update   { key "wp_default_key."; };
+        allow-transfer { localhost; };
+};
+EOF
+                        close( ZONEFILE );
+                }
+        }
+}
+
+sub move_dirs {
+        my ($domain) = @_;
+        my $i, $grep_site, $grep_admin;
+        my $old = $old_site_nums{$domain};
+        my $new = $new_site_nums{$domain};
+
+        if( !$old || !$new ) {
+                print "*** ERROR: Cannot find old ($old) or new ($new) site number for '$domain'\n";
+                return 1;
+        }
+
+        print "-"x79 . "\n";
+        print "Moving fst files for '$domain' : $old -> $new\n";
+
+        $grep_site = 0;
+        $grep_admin = 0;
+
+        foreach $i (`/bin/grep -lR -e \"site${old}\" ${TMP_DIR}/site${old}/fst/`) {
+                chomp( $i );
+                next if( $i =~ /\/var\/log/ );
+
+                run_cmd( "/usr/bin/perl -pi -e 's/site${old}/site${new}/' \"${i}\"" );
+                $grep_site++;
+        }
+
+        foreach $i (`/bin/grep -lR -e \"admin${old}\" ${TMP_DIR}/site${old}/fst/`) {
+chomp( $i );
+                next if( $i =~ /\/var\/log/ );
+
+                run_cmd( "/usr/bin/perl -pi -e 's/admin${old}/admin${new}/' \"${i}\"" );
+                $grep_admin++;
+        }
+
+        print "* NOTE: Grep for \"site${old}\" changed to \"site${new}\" $grep_site time(s).\n";
+        print "* NOTE: Grep for \"admin${old}\" changed to \"admin${new}\" $grep_admin time(s).\n";
+
+        run_cmd( "/bin/mv -f ${SITE_DIR}/site${new}/fst/etc ${SITE_DIR}/site${new}/fst/etc.orig" );
+        run_cmd( "/bin/mv -f ${SITE_DIR}/site${new}/fst/var ${SITE_DIR}/site${new}/fst/var.orig" );
+        run_cmd( "/bin/mv -f ${SITE_DIR}/site${new}/fst/home ${SITE_DIR}/site${new}/fst/home.orig" );
+
+        run_cmd( "/bin/mv ${TMP_DIR}/site${old}/fst/* ${SITE_DIR}/site${new}/fst/" );
+        fix_site_passwd( $new );
+        fix_perms( $new );
+        run_cmd_chroot( $new, "/usr/bin/newaliases" );
+}
+
+sub fix_perms {
+        my( $site_num ) = @_;
+
+        chmod_dir( "/home/virtual/site${site_num}/fst/var/www/html/", "admin${site_num}", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/var/www/cgi-bin/", "admin${site_num}", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/var/www/squirrelmail/", "admin${site_num}", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/var/www/squirrelmail-attachments/", "admin${site_num}", "" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/var/www/squirrelmail-data/", "admin${site_num}", "" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/usr/local/bin/", "admin${site_num}", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/usr/local/lib/", "admin${site_num}", "admin${site_num}" );
+        chmod_file( "/home/virtual/site${site_num}/fst/var/log/httpd/access_log*", "admin${site_num}", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/var/www/interpreters", "admin${site_num}", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/tmp", "admin${site_num}", "admin${site_num}" );
+chmod_file( "/home/virtual/site${site_num}/fst/etc/my.cnf", "admin${site_num}", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/etc/webalizer", "admin${site_num}", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/etc/skel", "admin${site_num}", "admin${site_num}" );
+        chmod_file( "/home/virtual/site${site_num}/fst/etc/php.ini", "admin${site_num}", "admin${site_num}" );
+        chmod_file( "/home/virtual/site${site_num}/fst/etc/procmailrc", "admin${site_num}", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/var/spool/clientmqueue", "admin${site_num}", "" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/var/www/usage", "admin${site_num}", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/var/ftp", "admin${site_num}", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/var/lib/webalizer/", "admin${site_num}", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/var/www/perl", "admin${site_num}", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/var/lib/mysql", "", "admin${site_num}" );
+        chmod_file( "/home/virtual/site${site_num}/fst/etc", "", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/var/spool/mqueue.site", "", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/var/spool/mqueue", "", "admin${site_num}" );
+        chmod_file( "/home/virtual/site${site_num}/fst/var/spool/mail", "admin${site_num}", "admin${site_num}" );
+        chmod_dir( "/home/virtual/site${site_num}/fst/var/spool/mail.quarantine", "", "admin${site_num}" );
+        chmod_file( "/home/virtual/site${site_num}/fst/home", "admin${site_num}", "admin${site_num}" ); 
+        chmod_file( "/home/virtual/site${site_num}/fst/var/spool/mail/mail", "admin${site_num}", "admin${site_num}" );
+
+        foreach $j (`/bin/cat /home/virtual/site${site_num}/fst/etc/passwd`) {
+                next if( $j =~ /root|smmsp|sshd|apache|mail|ensimrootmail|tomcat4|mysql|majordomo|ftp/ );
+
+                @tmp = split( ":", $j );
+                chmod_dir( "/home/virtual/site${site_num}/fst/home/" . $tmp[0], $tmp[2], "admin${site_num}" );
+                chmod_file( "/home/virtual/site${site_num}/fst/var/spool/mail/" . $tmp[0], $tmp[2], "admin${site_num}" );
+        }
+}
+
+sub fix_site_passwd {
+        my( $site_num ) = @_;
+        my $info, @tmp;
+
+        $info = `/usr/bin/head -n 1 /home/virtual/site${site_num}/fst/etc/passwd`;
+ @tmp = split( ':', $info );
+
+        $admin_user{$site_num} = $tmp[0];
+        $virt_passwd{$site_num} = $tmp[2];
+        $virt_group{$site_num} = $tmp[3];
+
+        print "* NOTE: admin_user = " . $admin_user{$site_num} . " ";
+        print "virt_passwd = " . $virt_passwd{$site_num} . " ";
+        print "virt_group = " . $virt_group{$site_num} . " ";
+        print "sys_passwd = " . $passwd{'admin' . $site_num} . " ";
+        print "sys_group = " . $group{'admin' . $site_num} . "\n";
+
+        if( $passwd{'admin' . $site_num} != $virt_passwd{$site_num} ) {
+                run_cmd_chroot( $site_num, "/usr/sbin/usermod -u " . $passwd{'admin' . $site_num} . " " . $admin_user{$site_num} );
+                run_cmd_chroot( $site_num, "/usr/sbin/usermod -u " . $passwd{'admin' . $site_num} . " -o mail" );
+                run_cmd_chroot( $site_num, "/usr/sbin/usermod -u " . $passwd{'admin' . $site_num} . " -o ftp" );
+                run_cmd_chroot( $site_num, "/usr/sbin/usermod -u " . $passwd{'admin' . $site_num} . " -o majordomo" );
+        }
+
+        if( $group{'admin' . $site_num} != $virt_group{$site_num} ) {
+                run_cmd_chroot( $site_num, "/usr/sbin/groupmod -g " . $group{'admin' . $site_num} . " " . $admin_user{$site_num} );
+
+                foreach $j (`/bin/cat /home/virtual/site${site_num}/fst/etc/passwd`) {
+                        next if( $j =~ /root|smmsp|sshd|apache|tomcat4|mysql/ );
+                        @tmp = split( ":", $j );
+                        run_cmd_chroot( $site_num, "/usr/sbin/usermod -g " . $admin_user{$site_num} . " " . $tmp[0] );
+                }
+        }
+}
+
+sub restore_mysql {
+        my $i;
+foreach $i (`/bin/ls $BACKUP_DIR/*.sql`) {
+                next if( $i =~ /appldb/ );
+                chomp( $i );
+
+                if( $i =~ /\/([\w\-]+)\.sql$/ ) {
+                        $db_name = $1;
+                } else {
+                        print "*** ERROR: Cannot get database name from '$i'\n";
+                        next;
+                }
+
+                run_cmd( "/usr/bin/mysql -u root --password='$mysql_root_password' $db_name < $i" );
+        }
+}
+
+################################################################################
+# Script Starts Here
+################################################################################
+
+$debug_mode = 0;
+
+$date = `/bin/date`;
+chomp( $date );
+
+print "="x79 . "\n";
+print "* Restore starting.\n";
+print "* $server_name : $date\n";
+print "="x79 . "\n\n";
+
+print "="x79 . "\n";
+print "* Gathering information.\n";
+print "="x79 . "\n\n";
+&getResellerInfo;
+
+foreach $i (`/usr/local/bin/ListResellers`) {
+        if( $i =~ /username\=(\w+).+reseller\_id\=(\d+)/ ) {
+                $resellers_done{$1} = 1;
+                $new_reseller_nums{$1} = $2;
+        } else {
+                print "** WARNING: ListResellers data not recognized: '$i'\n";
+        }
+}
+
+foreach $i (`/bin/ls -lA /home/virtual`) {
+        next if( $i =~ /\s+site\d+/ || $i =~ /\s+admin\d+\s+/ );
+
+        if( $i =~ /([\w\-\.]+)\s*\-\>\s*\/home\/virtual\/site(\d+)/ ) {
+                $sites_done{$1} = 1;
+                $new_site_nums{$1} = $2;
+        }
+}
+
+foreach $i (`/bin/ls ${BACKUP_DIR}`) {
+        next unless( $i =~ /^([\w\.\-]+)\.site(\d+)\.full\.tar\.gz$/ );
+        $old_site_nums{$1} = $2;
+}
+
+print "="x79 . "\n";
+print "* Creating Resellers.\n";
+print "="x79 . "\n\n";
+
+&AddResellers;
+
+print "="x79 . "\n";
+print "* Creating Domains.\n";
+print "="x79 . "\n\n";
+
+foreach $i (keys %old_site_nums) {
+        if( $sites_done{$i} ) {
+                print "* NOTE: Already done '" . $i . "'\n";
+                next;
+        }
+
+        readSiteInfo( $old_site_nums{$i} );
+        &AddVirtDomain( "$i : " . $old_site_nums{$i} . " : " . $new_site_nums{$1} );
+}
+
+print "="x79 . "\n";
+print "* Gathering information.\n";
+print "="x79 . "\n\n";
+
+foreach $i (`/bin/cat /etc/passwd`) {
+        next unless( $i =~ /admin/ );
+
+        @tmp = split( ':', $i );
+        $passwd{$tmp[0]} = $tmp[2];
+}
+
+foreach $i (`/bin/cat /etc/group`) {
+        next unless( $i =~ /admin/ );
+
+        @tmp = split( ':', $i );
+        $group{$tmp[0]} = $tmp[2];
+}
+
+foreach $i (`/bin/ls -lA /home/virtual`) {
+        next if( $i =~ /\s+site\d+/ || $i =~ /\s+admin\d+\s+/ );
+if( $i =~ /([\w\-\.]+)\s*\-\>\s*\/home\/virtual\/site(\d+)/ ) {
+                $new_site_nums{$1} = $2;
+        }
+}
+
+foreach $i (values %new_site_nums) {
+        $info = `/usr/bin/head -n 1 /home/virtual/site$i/fst/etc/passwd`;
+        @tmp = split( ':', $info );
+
+        $admin_user{$i} = $tmp[0];
+        $virt_passwd{$i} = $tmp[2];
+        $virt_group{$i} = $tmp[3];
+}
+
+print "="x79 . "\n";
+print "* Restoring site data.\n";
+print "="x79 . "\n\n";
+
+foreach $i (keys %new_site_nums) {
+        $new_site_num = $new_site_nums{$i};
+        $old_site_num = $old_site_nums{$i};
+
+#       if( $sites_done{$site_num} ) {
+#               print "* NOTE: Skipping '$i' ... already done.\n";
+#               next;
+#       }
+
+        $backup_file = "${BACKUP_DIR}/" . $i . ".site" . $old_site_num . ".full.tar.gz";
+
+        unless( -d "${TMP_DIR}/site" . $old_site_num . "/" ) {
+                print "-"x79 . "\n";
+                print "* Extracting '$backup_file'\n";
+                run_cmd( "cd ${TMP_DIR};/bin/tar xpf $backup_file" );
+run_cmd( "/bin/mv ${TMP_DIR}/home/virtual/* ${TMP_DIR}/" );
+        } else {
+                print "* NOTE: Not extracting '${BACKUP_DIR}/$backup_file' ... already done.\n";
+        }
+
+        $old_dir = $TMP_DIR . "/site" . $old_site_num . "/fst";
+        $new_dir = $SITE_DIR . "/site" . $new_site_num . "/fst";
+
+        print "old = $old_dir ... new = $new_dir\n";
+
+        unless( -d "$new_dir/home" ) {
+                print "*** ERROR: Cannot find '$new_dir' for '$i'\n";
+                next;
+        }
+
+        unless( -d "$old_dir/home" ) {
+                print "*** ERROR: Cannot find '$old_dir' for '$i'\n";
+                next;
+        }
+
+        move_dirs( $i );
+}
+
+print "="x79 . "\n";
+print "* Failures:\n";
+print "="x79 . "\n\n";
+
+print "Resellers:\n";
+
+foreach $i (keys %reseller_failed) {
+        print "$i\n";
+}
+print "\nSites:\n";
+
+foreach $i (keys %site_failed) {
+        print "$i\n";
+}
+You have new mail in /var/spool/mail/root
+

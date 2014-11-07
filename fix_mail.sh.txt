@@ -1,0 +1,12 @@
+fix_mail.sh
+
+#!/bin/sh
+
+# /root/bin/fix_mail.pl
+#/bin/grep -v "[DEFAULT]" domainmap | /usr/sbin/makemap hash domainmap
+/bin/cp -f /etc/mail/sendmail.cf /etc/mail/sendmail.cf.bak
+/usr/bin/m4 /usr/lib/opcenter/sendmail/install/sendmail.mc > /etc/mail/sendmail.cf
+/sbin/service sendmail restart
+/sbin/service saslauthd restart
+/sbin/service spamassassin restart
+/sbin/service MailScanner restart
