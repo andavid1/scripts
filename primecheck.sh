@@ -10,7 +10,7 @@ function optimusprime
 {
 for value in `seq $start $end`;
  do 
-  hold=$(factor $value | grep $value | cut -d ":" -f 2 | cut -d " " -f 2)
+  hold=$(factor $value | grep $value | cut -d ":" -f 2 | awk '{print $1}')
    if [[ $hold == $value ]] 
     then 
     echo $value
