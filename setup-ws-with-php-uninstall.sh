@@ -1,4 +1,8 @@
 #!/bin/bash 
+#uinstaller for apache and php in ubuntu only
+#version 1.0
+#Author David Anand <david.anands@gmail.com>
+
 echo "Do you wish to proceed uninstalling apache and php<y or n> ? \c"
 read WISH
 
