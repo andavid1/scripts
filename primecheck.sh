@@ -1,6 +1,8 @@
 #!/bin/bash
 #set -x
-
+#prime number checker with factor binary 
+#version 1.0
+#Author David Anand <david.anands@gmail.com>
 
 function prime1
 {   res1=$(date +%s)
