@@ -10,6 +10,8 @@ echo enter the last value:
 read end
 
 echo the prime numbers are as follows:
+function prime
+{
 COUNT=$start
 while [ $COUNT -le $end ]; do
 
@@ -19,3 +21,5 @@ fi
 
 let COUNT++
 done
+}
+prime
