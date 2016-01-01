@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -x
+set -x
 
 for i in $(seq 1  100)
 do
